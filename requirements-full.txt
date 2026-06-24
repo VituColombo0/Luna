@@ -1,0 +1,17 @@
+# ============================================
+# Alfred — Todas as Dependências
+# ============================================
+# Instala tudo: core + visão + memória.
+# Uso: pip install -r requirements-full.txt
+
+# Core
+-r requirements-core.txt
+
+# Visão
+-r requirements-vision.txt
+
+# Memória
+-r requirements-memory.txt
+
+# Extras
+pyautogui>=0.9.54

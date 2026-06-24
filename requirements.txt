@@ -1,28 +1,17 @@
-# === Core ===
-ollama>=0.4.0
-pyyaml>=6.0
+# ============================================
+# Alfred — Todas as Dependências
+# ============================================
+# Este arquivo instala TUDO. Para instalação
+# modular, veja requirements-core/memory/vision.txt
 
-# === Voice (STT) ===
-faster-whisper>=1.1.0
-sounddevice>=0.5.0
-numpy>=1.26.0
+# Core (obrigatório)
+-r requirements-core.txt
 
-# === Voice (TTS) ===
-edge-tts>=6.1.0
-pygame>=2.5.0
-# piper-tts  # Uncomment for fully offline TTS
+# Memória (opcional)
+-r requirements-memory.txt
 
-# === Vision ===
-opencv-python>=4.10.0
-face-recognition>=1.3.0
+# Visão (opcional)
+-r requirements-vision.txt
 
-# === Memory ===
-chromadb>=0.5.0
-sentence-transformers>=3.0.0
-
-# === Actions / OS Control ===
+# Extras
 pyautogui>=0.9.54
-psutil>=6.0.0
-
-# === Utilities ===
-rich>=13.0.0

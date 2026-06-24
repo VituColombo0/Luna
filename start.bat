@@ -3,7 +3,6 @@ REM ============================================
 REM Alfred — Script de inicialização (Windows)
 REM ============================================
 REM Duplo clique neste arquivo para iniciar o Alfred.
-REM Para auto-start: adicione um atalho na pasta Startup.
 
 set SCRIPT_DIR=%~dp0
 set VENV_DIR=%SCRIPT_DIR%venv
@@ -17,7 +16,7 @@ if exist "%VENV_DIR%\Scripts\activate.bat" (
     call "%VENV_DIR%\Scripts\activate.bat"
 ) else (
     echo Erro: virtualenv nao encontrado em %VENV_DIR%
-    echo Execute: python -m venv venv ^&^& pip install -r requirements.txt
+    echo Execute o instalador primeiro: install.bat
     pause
     exit /b 1
 )

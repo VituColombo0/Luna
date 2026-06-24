@@ -2,6 +2,9 @@
 data/memory/
 data/faces/
 
+# Logs
+data/alfred.log
+
 # Python
 __pycache__/
 *.py[cod]
@@ -30,5 +33,5 @@ Thumbs.db
 *.wav
 !data/**
 
-# Configuração pessoal
+# Configuração pessoal (gerada pelo instalador)
 config/config.yaml

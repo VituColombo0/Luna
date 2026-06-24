@@ -1,0 +1,8 @@
+# ============================================
+# Alfred — Módulo de Visão (Opcional)
+# ============================================
+# Reconhecimento facial e análise de imagens.
+# Instalar com: pip install -r requirements-vision.txt
+
+opencv-python>=4.10.0
+face-recognition>=1.3.0
