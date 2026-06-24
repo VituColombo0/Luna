@@ -60,7 +60,7 @@ class Brain:
         self.user_config = config.get("user", {})
         self.logger = logger
 
-        self.model = self.config.get("model", "phi3")
+        self.model = self.config.get("model", "llama3.1")
         self.vision_model = self.config.get("vision_model", "moondream")
         self.temperature = self.config.get("temperature", 0.7)
         self.host = self.config.get("ollama_host", "http://localhost:11434")
@@ -241,12 +241,23 @@ REGRAS:
         Returns:
             Dicionário da ação ou None se não houver ação.
         """
+        import re
         try:
-            # Procurar bloco ```action ... ```
+            # Procurar bloco ```action ... ``` ou ```json ... ```
+            action_json = None
             if "```action" in text:
                 start = text.index("```action") + len("```action")
                 end = text.index("```", start)
                 action_json = text[start:end].strip()
+            elif "```json" in text:
+                start = text.index("```json") + len("```json")
+                end = text.index("```", start)
+                action_json = text[start:end].strip()
+
+            if action_json:
+                # Arrumar possíveis single-backslashes nos caminhos gerados pelo LLM
+                # Exemplo: C:\Documents -> C:\\Documents (se não estiver escapado)
+                action_json = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'\\\\', action_json)
                 action = json.loads(action_json)
 
                 # Validar que a ação existe
@@ -277,6 +288,10 @@ REGRAS:
             if "```action" in text:
                 start = text.index("```action")
                 end = text.index("```", start + 9) + 3
+                text = text[:start].strip() + text[end:].strip()
+            elif "```json" in text:
+                start = text.index("```json")
+                end = text.index("```", start + 7) + 3
                 text = text[:start].strip() + text[end:].strip()
         except ValueError:
             pass

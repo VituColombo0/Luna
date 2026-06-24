@@ -11,6 +11,8 @@ import os
 from datetime import datetime
 
 try:
+    # Desativar telemetria do ChromaDB (melhor prática de privacidade e logs)
+    os.environ["ANONYMIZED_TELEMETRY"] = "False"
     import chromadb
     from chromadb.config import Settings
 
@@ -73,13 +75,14 @@ class MemoryManager:
             self.logger.error(f"Erro ao inicializar ChromaDB: {e}")
             self.enabled = False
 
-    def remember(self, user_message: str, assistant_response: str):
+    def remember(self, user_message: str, assistant_response: str, user_name: str = "Usuário"):
         """
         Salva uma interação na memória de longo prazo.
 
         Args:
             user_message: O que o usuário disse.
             assistant_response: O que o Alfred respondeu.
+            user_name: Nome do usuário que falou.
         """
         if not self.enabled or not self.auto_save:
             return
@@ -88,8 +91,8 @@ class MemoryManager:
             now = datetime.now()
             doc_id = f"mem_{now.strftime('%Y%m%d_%H%M%S_%f')}"
 
-            # O documento que será embedding é a conversa completa
-            document = f"Usuário: {user_message}\nAlfred: {assistant_response}"
+            # O documento que será embedding é a conversa completa, marcando o locutor
+            document = f"{user_name}: {user_message}\nAlfred: {assistant_response}"
 
             self.collection.add(
                 documents=[document],

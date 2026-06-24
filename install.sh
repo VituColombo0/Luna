@@ -182,7 +182,7 @@ step 5 "Baixando modelo de IA..."
 
 echo ""
 echo -e "${BOLD}Escolha o modelo:${NC}"
-echo -e "  ${CYAN}[1]${NC} phi3       — Leve e rápido (2.3GB RAM) ${GREEN}← Recomendado${NC}"
+echo -e "  ${CYAN}[1]${NC} llama3.1   — Inteligente e versátil (8B) ${GREEN}← Recomendado${NC}"
 echo -e "  ${CYAN}[2]${NC} llama3.2   — Equilibrado (4.7GB RAM)"
 echo -e "  ${CYAN}[3]${NC} mistral    — Potente (4.1GB RAM)"
 echo -e "  ${CYAN}[4]${NC} gemma2     — Google, bom em PT-BR (5.4GB RAM)"
@@ -191,11 +191,11 @@ read -p "Escolha [1/2/3/4] (padrão: 1): " model_choice
 model_choice=${model_choice:-1}
 
 case $model_choice in
-    1) MODEL="phi3" ;;
+    1) MODEL="llama3.1" ;;
     2) MODEL="llama3.2" ;;
     3) MODEL="mistral" ;;
     4) MODEL="gemma2" ;;
-    *) MODEL="phi3" ;;
+    *) MODEL="llama3.1" ;;
 esac
 
 # Verificar se o modelo já existe
@@ -205,6 +205,14 @@ else
     info "Baixando $MODEL... (isso pode demorar)"
     ollama pull "$MODEL" || fail "Erro ao baixar o modelo $MODEL"
     ok "Modelo $MODEL baixado"
+fi
+
+if ollama list 2>/dev/null | grep -q "moondream"; then
+    ok "Modelo moondream já baixado"
+else
+    info "Baixando modelo de visão moondream..."
+    ollama pull "moondream" || warn "Erro ao baixar o modelo moondream. A visão pode não funcionar corretamente."
+    ok "Modelo moondream baixado"
 fi
 
 # ═══════════════════════════════════════════════════════════

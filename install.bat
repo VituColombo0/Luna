@@ -115,17 +115,17 @@ echo.
 echo [5/7] Baixando modelo de IA...
 echo.
 echo Escolha o modelo:
-echo   [1] phi3       — Leve e rapido (2.3GB RAM) ^<-- Recomendado
+echo   [1] llama3.1   — Inteligente e versátil (8B) ^<-- Recomendado
 echo   [2] llama3.2   — Equilibrado (4.7GB RAM)
 echo   [3] mistral    — Potente (4.1GB RAM)
 echo.
 set /p model_choice="Escolha [1/2/3] (padrao: 1): "
 if "%model_choice%"=="" set model_choice=1
 
-if "%model_choice%"=="1" set MODEL=phi3
+if "%model_choice%"=="1" set MODEL=llama3.1
 if "%model_choice%"=="2" set MODEL=llama3.2
 if "%model_choice%"=="3" set MODEL=mistral
-if not defined MODEL set MODEL=phi3
+if not defined MODEL set MODEL=llama3.1
 
 ollama list 2>nul | findstr /i "%MODEL%" >nul 2>&1
 if errorlevel 1 (
@@ -138,6 +138,13 @@ if errorlevel 1 (
     )
 )
 echo ✅ Modelo %MODEL% pronto
+
+echo ℹ  Baixando modelo de visao (moondream)...
+ollama list 2>nul | findstr /i "moondream" >nul 2>&1
+if errorlevel 1 (
+    ollama pull moondream
+)
+echo ✅ Modelo moondream pronto
 
 REM ─── Configuração ─────────────────────────────────────────
 echo.

@@ -104,14 +104,23 @@ class Speaker:
             finally:
                 Path(tmp_path).unlink(missing_ok=True)
 
-        # Rodar o async no event loop
+        # Rodar o async de forma bloqueante (thread-safe)
         try:
             loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.ensure_future(_generate_and_play())
-            else:
-                loop.run_until_complete(_generate_and_play())
         except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            import threading
+            def run_in_thread():
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                new_loop.run_until_complete(_generate_and_play())
+                new_loop.close()
+            t = threading.Thread(target=run_in_thread)
+            t.start()
+            t.join()
+        else:
             asyncio.run(_generate_and_play())
 
     def _speak_piper(self, text: str):

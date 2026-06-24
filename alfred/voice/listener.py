@@ -74,8 +74,8 @@ class Listener:
             )
             self.whisper_model = WhisperModel(
                 self.model_size,
-                device="cpu",  # CPU para não competir VRAM com o LLM
-                compute_type="int8",  # Otimizado para velocidade
+                device="cuda",  # RTX 3060 (12GB) tem folga para Whisper + LLM
+                compute_type="float16",  # Alta performance na GPU
             )
             self.logger.info("Modelo Whisper carregado com sucesso.")
         except Exception as e:

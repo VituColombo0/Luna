@@ -113,8 +113,8 @@ class WakeWordDetector:
             )
             self._whisper_model = WhisperModel(
                 "tiny",           # Modelo mais leve — ideal para detecção rápida
-                device="cpu",
-                compute_type="int8",
+                device="cuda",
+                compute_type="float16",
             )
             self.logger.info("Wake word detector pronto.")
         except Exception as e:
@@ -131,6 +131,10 @@ class WakeWordDetector:
         """
         if not self.is_available:
             self.logger.warning("Wake word detector não disponível.")
+            return
+
+        if getattr(self, '_running', False) and self._thread is not None:
+            self.logger.warning("Wake word detector já está rodando.")
             return
 
         self._callback = callback
@@ -183,9 +187,11 @@ class WakeWordDetector:
             try:
                 # Verificar se está pausado
                 with self._lock:
-                    if self._paused:
-                        time.sleep(0.1)
-                        continue
+                    is_paused = self._paused
+                
+                if is_paused:
+                    time.sleep(0.1)
+                    continue
 
                 # Primeiro: checar rapidamente se há som
                 quick_check = sd.rec(

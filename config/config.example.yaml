@@ -11,7 +11,7 @@ user:
 
 # --- Modelo de Linguagem ---
 llm:
-  model: "phi3"               # Modelo do Ollama (phi3, llama3, mistral...)
+  model: "llama3.1"             # Modelo do Ollama (llama3.1, phi3, mistral...)
   vision_model: "moondream"    # Modelo de visão (moondream, llava...)
   temperature: 0.7
   ollama_host: "http://localhost:11434"

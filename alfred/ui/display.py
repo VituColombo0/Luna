@@ -274,6 +274,8 @@ class Display:
 
     def start(self):
         """Inicia a thread de animação em background."""
+        if self._running:
+            return
         self._running = True
         self._thread = threading.Thread(target=self._animation_loop, daemon=True)
         self._thread.start()
@@ -283,6 +285,7 @@ class Display:
         self._running = False
         if self._thread:
             self._thread.join(timeout=2)
+            self._thread = None
 
     def _animation_loop(self):
         """Loop de animação que roda em background."""

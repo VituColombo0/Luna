@@ -97,7 +97,7 @@ class Orchestrator:
                     "Certifique-se de que:\n"
                     "1. O Ollama está instalado: [cyan]https://ollama.ai[/]\n"
                     "2. O serviço está rodando: [cyan]ollama serve[/]\n"
-                    "3. O modelo está baixado: [cyan]ollama pull phi3[/]",
+                    "3. O modelo está baixado: [cyan]ollama pull llama3.1[/]",
                     title="⚠️  Erro de Conexão",
                     border_style="red",
                 )
@@ -111,14 +111,19 @@ class Orchestrator:
         # Determinar modo de operação
         voice_available = self.wake_word.is_available and self.listener.is_available
 
-        if voice_available:
-            self._run_voice_mode(user_name, wake_word)
-        else:
+        self.mode = "voice" if voice_available else "text"
+
+        if self.mode == "text":
             console.print(
                 "[yellow]⚠ Sistema de voz indisponível. "
                 "Usando modo texto como fallback.[/]\n"
             )
-            self._run_text_mode(user_name, wake_word)
+
+        while self.running:
+            if self.mode == "voice":
+                self._run_voice_mode(user_name, wake_word)
+            else:
+                self._run_text_mode(user_name, wake_word)
 
     def _run_voice_mode(self, user_name: str, wake_word: str):
         """
@@ -180,7 +185,7 @@ class Orchestrator:
                 elif user_input.lower() == "/texto":
                     self.wake_word.stop()
                     console.print("[dim]Wake word desativado. Modo texto.[/]")
-                    self._run_text_mode(user_name, self.config.get("voice", {}).get("wake_word", "alfred"))
+                    self.mode = "text"
                     return
                 elif user_input.lower() == "/status":
                     self._show_status()
@@ -311,7 +316,7 @@ class Orchestrator:
                 elif user_input.lower() == "/voz":
                     if self.wake_word.is_available:
                         console.print("[dim]Ativando modo voz...[/]")
-                        self._run_voice_mode(user_name, wake_word)
+                        self.mode = "voice"
                         return
                     else:
                         console.print(
@@ -344,13 +349,29 @@ class Orchestrator:
         self.display.set_state(State.THINKING)
         self.display.start()
 
+        # --- Identificação Visual ---
+        image_path = None
+        if hasattr(self, 'vision') and self.vision.is_available:
+            if self.vision.face_rec_enabled:
+                identified_name = self.vision.identify_face()
+                if identified_name:
+                    user_name = identified_name
+                    self.logger.debug(f"Usuário identificado pela câmera: {user_name}")
+            
+            # Checar se o usuário pediu para olhar algo
+            vision_triggers = ["veja", "olha", "olhe", "vendo", "visão", "câmera", "camera", "imagem", "rosto"]
+            if any(trigger in user_input.lower() for trigger in vision_triggers):
+                self.logger.info("Intenção de visão detectada. Capturando imagem...")
+                image_path = self.vision.capture_for_analysis()
+
         # --- Buscar memórias relevantes ---
         memory_context = self.memory.recall(user_input)
 
         # --- Pensar (LLM) ---
         result = self.brain.think(
-            user_message=user_input,
+            user_message=f"[{user_name} falando]: {user_input}",
             memory_context=memory_context,
+            image_path=image_path,
         )
 
         self.display.stop()
@@ -380,6 +401,7 @@ class Orchestrator:
         self.memory.remember(
             user_message=user_input,
             assistant_response=response_text,
+            user_name=user_name,
         )
 
     def _speak_with_display(self, text: str):

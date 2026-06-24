@@ -18,7 +18,7 @@ Diga **"Alfred"** e ele responde — sem depender de internet, sem enviar dados 
 |---------|-----------|
 | 🎤 **Wake Word** | Diga "Alfred" e ele ativa — igual uma Alexa |
 | 🗣️ **Voz Natural** | Fale naturalmente e receba respostas por voz |
-| 🧠 **IA Local** | Usa Ollama (phi3, llama3, mistral) — 100% offline |
+| 🧠 **IA Local** | Usa Ollama (llama3.1, phi3, mistral) — 100% offline |
 | 📚 **Memória** | Lembra de conversas passadas via ChromaDB |
 | 👁️ **Visão** | Reconhece seu rosto pela câmera (opcional) |
 | 💻 **Ações no PC** | Abre arquivos, pesquisa na web, info do sistema |
@@ -83,7 +83,7 @@ curl -fsSL https://ollama.ai/install.sh | sh  # Linux
 # Windows: baixe em https://ollama.ai/download
 
 # 5. Baixe o modelo
-ollama pull phi3
+ollama pull llama3.1
 
 # 6. Configure
 cp config/config.example.yaml config/config.yaml
@@ -132,7 +132,7 @@ user:
   nickname: "Apelido"
 
 llm:
-  model: "phi3"          # phi3, llama3.2, mistral, gemma2
+  model: "llama3.1"      # llama3.1, phi3, llama3.2, mistral, gemma2
 
 voice:
   wake_word: "alfred"    # Palavra de ativação

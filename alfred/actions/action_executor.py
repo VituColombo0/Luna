@@ -35,7 +35,9 @@ class ActionExecutor:
         self.logger = logger
 
         self.enabled = self.config.get("enabled", True)
-        self.allowed_paths = self.config.get("allowed_paths", [])
+        # Expandir ~ nos caminhos permitidos
+        raw_paths = self.config.get("allowed_paths", [])
+        self.allowed_paths = [os.path.expanduser(os.path.expandvars(p)) for p in raw_paths]
         self.allow_browser = self.config.get("allow_browser", True)
         self.allow_system_commands = self.config.get("allow_system_commands", False)
 
