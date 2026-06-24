@@ -1,0 +1,34 @@
+# Dados persistentes (memória, faces, etc.)
+data/memory/
+data/faces/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Ambiente virtual
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Áudio temporário
+*.mp3
+*.wav
+!data/**
+
+# Configuração pessoal
+config/config.yaml

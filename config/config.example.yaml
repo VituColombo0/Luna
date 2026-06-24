@@ -1,0 +1,51 @@
+# ============================================
+# Alfred — Configuração Pessoal
+# ============================================
+# Copie este arquivo para config.yaml e edite.
+
+# --- Seu Perfil ---
+user:
+  name: "Seu Nome"
+  nickname: "Como você quer ser chamado"
+  bio: "Estudante de engenharia, trabalha com dados climáticos..."
+
+# --- Modelo de Linguagem ---
+llm:
+  model: "phi3"               # Modelo do Ollama (phi3, llama3, mistral...)
+  vision_model: "moondream"    # Modelo de visão (moondream, llava...)
+  temperature: 0.7
+  ollama_host: "http://localhost:11434"
+
+# --- Voz ---
+voice:
+  stt_model: "base"            # Whisper model: tiny, base, small, medium
+  stt_language: "pt"           # Idioma principal
+  tts_engine: "edge-tts"       # edge-tts (online) ou piper (offline)
+  tts_voice: "pt-BR-AntonioNeural"  # Voz do edge-tts
+  wake_word: "alfred"          # Palavra de ativação
+
+# --- Visão ---
+vision:
+  enabled: true
+  camera_index: 0              # Índice da câmera (0 = padrão)
+  face_recognition: true
+  faces_dir: "data/faces"      # Pasta com fotos do usuário
+
+# --- Memória ---
+memory:
+  enabled: true
+  db_path: "data/memory"
+  max_context_items: 5         # Quantas memórias puxar por pergunta
+  auto_save: true              # Salvar conversas automaticamente
+
+# --- Ações ---
+actions:
+  enabled: true
+  allowed_paths:               # Pastas que o Alfred pode acessar
+    - "~/Documents"
+    - "~/Downloads"
+    - "~/Videos"
+    - "~/Music"
+    - "~/Desktop"
+  allow_browser: true
+  allow_system_commands: false  # Cuidado: permite comandos shell
