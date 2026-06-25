@@ -393,25 +393,22 @@ if [ ! -f "config/config.yaml" ] || [[ "$recreate" =~ ^[sS]$ ]]; then
     bio=${bio:-"Entusiasta de tecnologia."}
 
     echo ""
-    echo -e "${BOLD}Voz do Assistente:${NC}"
-    echo -e "  ${CYAN}[1]${NC} J.A.R.V.I.S. (pt-PT-DuarteNeural) ${GREEN}← Padrão${NC}"
-    echo -e "  ${CYAN}[2]${NC} Masculina BR (pt-BR-AntonioNeural)"
-    echo -e "  ${CYAN}[3]${NC} Feminina BR (pt-BR-FranciscaNeural)"
-    read -p "Escolha [1/2/3] (padrão: 1): " voice_choice
+    echo -e "${BOLD}Voz do Alfred:${NC}"
+    echo -e "  ${CYAN}[1]${NC} Masculina (Antonio) ${GREEN}← Padrão${NC}"
+    echo -e "  ${CYAN}[2]${NC} Feminina (Francisca)"
+    read -p "Escolha [1/2] (padrão: 1): " voice_choice
     voice_choice=${voice_choice:-1}
 
-    if [ "$voice_choice" = "3" ]; then
+    if [ "$voice_choice" = "2" ]; then
         TTS_VOICE="pt-BR-FranciscaNeural"
-    elif [ "$voice_choice" = "2" ]; then
-        TTS_VOICE="pt-BR-AntonioNeural"
     else
-        TTS_VOICE="pt-PT-DuarteNeural"
+        TTS_VOICE="pt-BR-AntonioNeural"
     fi
 
     # Gerar config.yaml
     cat > config/config.yaml << YAML
 # ============================================
-# J.A.R.V.I.S. — Configuração Pessoal
+# Alfred — Configuração Pessoal
 # ============================================
 # Gerado automaticamente por install.sh
 
@@ -434,7 +431,7 @@ voice:
   stt_language: "pt"
   tts_engine: "edge-tts"
   tts_voice: "$TTS_VOICE"
-  wake_word: "jarvis"
+  wake_word: "alfred"
 
 # --- Visão ---
 vision:
