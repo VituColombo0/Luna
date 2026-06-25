@@ -241,51 +241,8 @@ echo   [2] Feminina (Francisca)
 set /p voice_choice="Escolha [1/2] (padrao: 1): "
 if "%voice_choice%"=="2" (set TTS_VOICE=pt-BR-FranciscaNeural) else (set TTS_VOICE=pt-BR-AntonioNeural)
 
-(
-echo # Alfred — Configuracao Pessoal
-echo # Gerado por install.bat
-echo.
-echo user:
-echo   name: "%user_name%"
-echo   nickname: "%nickname%"
-echo   bio: "%bio%"
-echo.
-echo llm:
-echo   model: "%MODEL%"
-echo   vision_model: "moondream"
-echo   temperature: 0.7
-echo   ollama_host: "http://localhost:11434"
-echo.
-echo voice:
-echo   stt_model: "base"
-echo   stt_language: "pt"
-echo   tts_engine: "edge-tts"
-echo   tts_voice: "%TTS_VOICE%"
-echo   wake_word: "alfred"
-echo.
-echo vision:
-echo   enabled: true
-echo   camera_index: 0
-echo   face_recognition: true
-echo   faces_dir: "data/faces"
-echo.
-echo memory:
-echo   enabled: true
-echo   db_path: "data/memory"
-echo   max_context_items: 5
-echo   auto_save: true
-echo.
-echo actions:
-echo   enabled: true
-echo   allowed_paths:
-echo     - "~/Documents"
-echo     - "~/Downloads"
-echo     - "~/Videos"
-echo     - "~/Music"
-echo     - "~/Desktop"
-echo   allow_browser: true
-echo   allow_system_commands: false
-) > config\config.yaml
+REM Usar Python para gerar o config em UTF-8 (evita problemas de encoding do cmd)
+venv\Scripts\python.exe _generate_config.py "%user_name%" "%nickname%" "%bio%" "%MODEL%" "%TTS_VOICE%"
 
 echo ✅ Configuracao salva
 
