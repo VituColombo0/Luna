@@ -141,7 +141,7 @@ class Display:
 
         return Panel(
             Align.center(content),
-            title=f"[bold]Alfred[/] — {state_labels.get(state, '')}",
+            title=f"[bold]J.A.R.V.I.S.[/] — {state_labels.get(state, '')}",
             subtitle=f"[dim]{time_str} • {date_str}[/]",
             border_style=border_colors.get(state, "white"),
             width=self.width,
@@ -174,9 +174,9 @@ class Display:
 
         content = Text()
         content.append(f"\n  {pulse} ", style="bright_blue")
-        content.append("Alfred", style="bold bright_white")
+        content.append("J.A.R.V.I.S.", style="bold bright_white")
         content.append(" está pronto\n\n", style="dim")
-        content.append(f'  Diga "Alfred" ou digite para começar\n', style="dim italic")
+        content.append(f'  Diga "Jarvis" ou digite para começar\n', style="dim italic")
 
         return content
 

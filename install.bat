@@ -235,11 +235,12 @@ set /p bio="Descricao sobre voce: "
 if "%bio%"=="" set bio=Entusiasta de tecnologia.
 
 echo.
-echo Voz do Alfred:
-echo   [1] Masculina (Antonio)
-echo   [2] Feminina (Francisca)
-set /p voice_choice="Escolha [1/2] (padrao: 1): "
-if "%voice_choice%"=="2" (set TTS_VOICE=pt-BR-FranciscaNeural) else (set TTS_VOICE=pt-BR-AntonioNeural)
+echo Voz do Assistente:
+echo   [1] J.A.R.V.I.S. (pt-PT-DuarteNeural) ^<-- Padrao
+echo   [2] Masculina BR (pt-BR-AntonioNeural)
+echo   [3] Feminina BR (pt-BR-FranciscaNeural)
+set /p voice_choice="Escolha [1/2/3] (padrao: 1): "
+if "%voice_choice%"=="3" (set TTS_VOICE=pt-BR-FranciscaNeural) else (if "%voice_choice%"=="2" (set TTS_VOICE=pt-BR-AntonioNeural) else (set TTS_VOICE=pt-PT-DuarteNeural))
 
 REM Usar Python para gerar o config em UTF-8 (evita problemas de encoding do cmd)
 venv\Scripts\python.exe _generate_config.py "%user_name%" "%nickname%" "%bio%" "%MODEL%" "%TTS_VOICE%"

@@ -23,7 +23,7 @@ def main():
     tts_voice = sys.argv[5]
 
     config_content = f"""# ============================================
-# Alfred — Configuração Pessoal
+# J.A.R.V.I.S. — Configuração Pessoal
 # ============================================
 # Gerado automaticamente por install.bat
 
@@ -46,7 +46,7 @@ voice:
   stt_language: "pt"
   tts_engine: "edge-tts"
   tts_voice: "{tts_voice}"
-  wake_word: "alfred"
+  wake_word: "jarvis"
 
 # --- Visão ---
 vision:
