@@ -111,14 +111,45 @@ class WakeWordDetector:
             self.logger.info(
                 "Carregando modelo Whisper [cyan]tiny[/] para wake word..."
             )
+
+            # Auto-detectar dispositivo: CUDA se disponível, senão CPU
+            device = "cpu"
+            compute_type = "int8"
+
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    device = "cuda"
+                    compute_type = "float16"
+            except ImportError:
+                try:
+                    import ctypes
+                    ctypes.cdll.LoadLibrary("libcudart.so")
+                    device = "cuda"
+                    compute_type = "float16"
+                except (OSError, Exception):
+                    pass  # Usar CPU
+
             self._whisper_model = WhisperModel(
-                "tiny",           # Modelo mais leve — ideal para detecção rápida
-                device="cuda",
-                compute_type="float16",
+                "tiny",
+                device=device,
+                compute_type=compute_type,
             )
-            self.logger.info("Wake word detector pronto.")
+            self.logger.info(
+                f"Wake word detector pronto (device=[cyan]{device}[/])."
+            )
         except Exception as e:
             self.logger.error(f"Erro ao carregar Whisper para wake word: {e}")
+            # Fallback para CPU
+            if "cuda" in str(e).lower() or "gpu" in str(e).lower():
+                try:
+                    self._whisper_model = WhisperModel(
+                        "tiny", device="cpu", compute_type="int8"
+                    )
+                    self.logger.info("Wake word detector pronto (CPU fallback).")
+                    return
+                except Exception:
+                    pass
             self._whisper_model = None
 
     def start(self, callback: Callable):

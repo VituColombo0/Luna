@@ -10,8 +10,10 @@ VENV_DIR="$SCRIPT_DIR/venv"
 LOG_DIR="$SCRIPT_DIR/data"
 LOG_FILE="$LOG_DIR/alfred.log"
 
-# Criar pasta de logs se não existir
+# Criar pasta de logs e dados se não existirem
 mkdir -p "$LOG_DIR"
+mkdir -p "$SCRIPT_DIR/data/faces"
+mkdir -p "$SCRIPT_DIR/data/memory"
 
 # Ativar virtualenv
 if [ -f "$VENV_DIR/bin/activate" ]; then
@@ -31,8 +33,17 @@ fi
 if ! pgrep -x "ollama" > /dev/null 2>&1; then
     echo "[$(date)] Iniciando Ollama em background..." >> "$LOG_FILE"
     ollama serve > /dev/null 2>&1 &
-    sleep 3
+    sleep 5  # Dar mais tempo para o Ollama iniciar completamente
 fi
+
+# Aguardar Ollama ficar disponível
+for i in 1 2 3 4 5; do
+    if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+        break
+    fi
+    echo "[$(date)] Aguardando Ollama iniciar... (tentativa $i/5)" >> "$LOG_FILE"
+    sleep 3
+done
 
 # Iniciar o Alfred
 echo "[$(date)] Iniciando Alfred..." >> "$LOG_FILE"

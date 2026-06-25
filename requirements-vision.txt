@@ -5,4 +5,5 @@
 # Instalar com: pip install -r requirements-vision.txt
 
 opencv-python>=4.10.0
+dlib>=19.24.0
 face-recognition>=1.3.0

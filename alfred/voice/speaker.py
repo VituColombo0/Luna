@@ -53,7 +53,8 @@ class Speaker:
 
         if PYGAME_AVAILABLE:
             try:
-                pygame.mixer.init()
+                if not pygame.mixer.get_init():
+                    pygame.mixer.init()
             except Exception as e:
                 self.logger.error(f"Erro ao inicializar pygame mixer: {e}")
         else:

@@ -2,13 +2,13 @@
 REM ═══════════════════════════════════════════════════════════
 REM Alfred — Instalador Completo (Windows)
 REM ═══════════════════════════════════════════════════════════
-REM Este script faz TUDO para você:
-REM   1. Verifica Python 3.10+
+REM Este script faz TUDO para voce:
+REM   1. Instala Python se necessario (via winget)
 REM   2. Cria ambiente virtual
-REM   3. Instala dependências
+REM   3. Instala dependencias
 REM   4. Instala Ollama
 REM   5. Baixa o modelo de IA
-REM   6. Gera configuração
+REM   6. Gera configuracao
 REM   7. Configura auto-start
 REM ═══════════════════════════════════════════════════════════
 
@@ -29,11 +29,41 @@ echo [1/7] Verificando Python...
 
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo ❌ Python nao encontrado.
-    echo Baixe em: https://www.python.org/downloads/
-    echo IMPORTANTE: Marque "Add Python to PATH" durante a instalação.
-    pause
-    exit /b 1
+    echo ⚠  Python nao encontrado. Tentando instalar automaticamente...
+    echo.
+
+    REM Tentar via winget (Windows 10+)
+    where winget >nul 2>&1
+    if not errorlevel 1 (
+        echo ℹ  Instalando Python 3.11 via winget...
+        winget install Python.Python.3.11 --accept-source-agreements --accept-package-agreements
+        if errorlevel 1 (
+            echo ❌ Falha ao instalar Python via winget.
+            goto :manual_python
+        )
+
+        REM Atualizar PATH para encontrar o Python recem-instalado
+        set "PATH=%LOCALAPPDATA%\Programs\Python\Python311;%LOCALAPPDATA%\Programs\Python\Python311\Scripts;%PATH%"
+
+        python --version >nul 2>&1
+        if errorlevel 1 (
+            echo ⚠  Python instalado mas nao encontrado no PATH.
+            echo    Feche e reabra o terminal e execute install.bat novamente.
+            pause
+            exit /b 1
+        )
+        echo ✅ Python instalado com sucesso
+    ) else (
+        :manual_python
+        echo ❌ winget nao disponivel para instalacao automatica.
+        echo.
+        echo    Baixe Python manualmente em: https://www.python.org/downloads/
+        echo    IMPORTANTE: Marque "Add Python to PATH" durante a instalacao.
+        echo.
+        echo    Apos instalar, execute este script novamente.
+        pause
+        exit /b 1
+    )
 )
 
 for /f "tokens=2 delims= " %%v in ('python --version 2^>^&1') do set PYVER=%%v
@@ -44,7 +74,20 @@ echo.
 echo [2/7] Criando ambiente virtual...
 
 if exist "venv\Scripts\activate.bat" (
-    echo ℹ  Ambiente virtual ja existe. Reutilizando.
+    REM Verificar se o venv funciona
+    venv\Scripts\python.exe --version >nul 2>&1
+    if errorlevel 1 (
+        echo ⚠  Ambiente virtual corrompido. Recriando...
+        rmdir /s /q venv
+        python -m venv venv
+        if errorlevel 1 (
+            echo ❌ Erro ao criar ambiente virtual.
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo ℹ  Ambiente virtual ja existe. Reutilizando.
+    )
 ) else (
     python -m venv venv
     if errorlevel 1 (
@@ -58,12 +101,15 @@ call venv\Scripts\activate.bat
 pip install --upgrade pip setuptools wheel -q >nul 2>&1
 echo ✅ Ambiente virtual ativado
 
-REM ─── Dependências Python ──────────────────────────────────
+REM ─── Dependencias Python ──────────────────────────────────
 echo.
 echo [3/7] Instalando dependencias Python...
 
 echo ℹ  Instalando dependencias essenciais...
-pip install -r requirements-core.txt -q 2>&1 | findstr /V "already satisfied"
+pip install -r requirements-core.txt 2>&1 | findstr /V "already satisfied"
+if errorlevel 1 (
+    echo ⚠  Algumas dependencias podem ter falhado. Continuando...
+)
 echo ✅ Dependencias essenciais instaladas
 
 echo.
@@ -77,15 +123,15 @@ set /p optional_choice="Escolha [1/2/3/4] (padrao: 3): "
 if "%optional_choice%"=="" set optional_choice=3
 
 if "%optional_choice%"=="1" (
-    pip install -r requirements-memory.txt -q 2>&1 | findstr /V "already satisfied"
+    pip install -r requirements-memory.txt 2>&1 | findstr /V "already satisfied"
     echo ✅ Memoria instalada
 )
 if "%optional_choice%"=="2" (
-    pip install -r requirements-vision.txt -q 2>&1 | findstr /V "already satisfied"
+    pip install -r requirements-vision.txt 2>&1 | findstr /V "already satisfied"
     echo ✅ Visao instalada
 )
 if "%optional_choice%"=="3" (
-    pip install -r requirements-full.txt -q 2>&1 | findstr /V "already satisfied"
+    pip install -r requirements-full.txt 2>&1 | findstr /V "already satisfied"
     echo ✅ Todos os modulos instalados
 )
 
@@ -95,11 +141,31 @@ echo [4/7] Configurando Ollama...
 
 where ollama >nul 2>&1
 if errorlevel 1 (
-    echo ℹ  Ollama nao encontrado.
-    echo    Baixe e instale em: https://ollama.ai/download
-    echo    Depois execute este script novamente.
+    echo ⚠  Ollama nao encontrado. Tentando instalar...
     echo.
-    set /p dummy="Pressione Enter apos instalar o Ollama..."
+
+    REM Tentar via winget
+    where winget >nul 2>&1
+    if not errorlevel 1 (
+        echo ℹ  Instalando Ollama via winget...
+        winget install Ollama.Ollama --accept-source-agreements --accept-package-agreements
+        if not errorlevel 1 (
+            echo ✅ Ollama instalado
+            REM Atualizar PATH
+            set "PATH=%LOCALAPPDATA%\Programs\Ollama;%PATH%"
+        ) else (
+            echo ⚠  Falha na instalacao automatica.
+            echo    Baixe em: https://ollama.com/download
+            echo    Depois execute este script novamente.
+            echo.
+            set /p dummy="Pressione Enter apos instalar o Ollama..."
+        )
+    ) else (
+        echo ℹ  Baixe e instale o Ollama em: https://ollama.com/download
+        echo    Depois execute este script novamente.
+        echo.
+        set /p dummy="Pressione Enter apos instalar o Ollama..."
+    )
 )
 
 REM Verificar se Ollama está rodando
@@ -115,7 +181,7 @@ echo.
 echo [5/7] Baixando modelo de IA...
 echo.
 echo Escolha o modelo:
-echo   [1] llama3.1   — Inteligente e versátil (8B) ^<-- Recomendado
+echo   [1] llama3.1   — Inteligente e versatil (8B) ^<-- Recomendado
 echo   [2] llama3.2   — Equilibrado (4.7GB RAM)
 echo   [3] mistral    — Potente (4.1GB RAM)
 echo.
@@ -149,6 +215,9 @@ echo ✅ Modelo moondream pronto
 REM ─── Configuração ─────────────────────────────────────────
 echo.
 echo [6/7] Configurando seu perfil...
+
+REM Garantir que o diretório config existe
+if not exist "config" mkdir config
 
 if exist "config\config.yaml" (
     set /p recreate="config.yaml ja existe. Recriar? [s/N]: "
@@ -222,6 +291,10 @@ echo ✅ Configuracao salva
 
 :skip_config
 
+REM Garantir que as pastas de dados existem
+if not exist "data\faces" mkdir "data\faces"
+if not exist "data\memory" mkdir "data\memory"
+
 REM ─── Auto-Start ───────────────────────────────────────────
 echo.
 echo [7/7] Configurando auto-start...
@@ -249,7 +322,18 @@ if "%autostart_choice%"=="1" (
     echo ℹ  Para remover: delete "!STARTUP_DIR!\Alfred.bat"
 )
 
-REM ─── Finalização ──────────────────────────────────────────
+REM ─── Verificação Final ────────────────────────────────────
+echo.
+echo Verificacao final...
+venv\Scripts\python.exe -c "import yaml, numpy, pygame, edge_tts, ollama, rich, psutil" 2>nul
+if errorlevel 1 (
+    echo ⚠  Alguns pacotes essenciais podem estar faltando.
+    echo    O Alfred tentara funcionar sem eles.
+) else (
+    echo ✅ Todos os pacotes essenciais verificados
+)
+
+REM ─── Finalizacao ──────────────────────────────────────────
 echo.
 echo ╔══════════════════════════════════════════════╗
 echo ║  ✅ Instalacao concluida com sucesso!        ║

@@ -72,14 +72,52 @@ class Listener:
             self.logger.info(
                 f"Carregando modelo Whisper [cyan]{self.model_size}[/]..."
             )
+
+            # Auto-detectar dispositivo: tentar CUDA primeiro, fallback para CPU
+            device = "cpu"
+            compute_type = "int8"  # Padrão seguro para CPU
+
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    device = "cuda"
+                    compute_type = "float16"
+                    self.logger.info("GPU CUDA detectada — usando aceleração por GPU.")
+            except ImportError:
+                # torch não instalado — verificar via ctypes se CUDA está disponível
+                try:
+                    import ctypes
+                    ctypes.cdll.LoadLibrary("libcudart.so")
+                    device = "cuda"
+                    compute_type = "float16"
+                    self.logger.info("CUDA runtime detectado — usando GPU.")
+                except (OSError, Exception):
+                    self.logger.info("GPU não detectada — usando CPU para Whisper.")
+
             self.whisper_model = WhisperModel(
                 self.model_size,
-                device="cuda",  # RTX 3060 (12GB) tem folga para Whisper + LLM
-                compute_type="float16",  # Alta performance na GPU
+                device=device,
+                compute_type=compute_type,
             )
-            self.logger.info("Modelo Whisper carregado com sucesso.")
+            self.logger.info(
+                f"Modelo Whisper carregado com sucesso "
+                f"(device=[cyan]{device}[/], compute=[cyan]{compute_type}[/])."
+            )
         except Exception as e:
             self.logger.error(f"Erro ao carregar Whisper: {e}")
+            # Tentar fallback para CPU se CUDA falhou
+            if "cuda" in str(e).lower() or "gpu" in str(e).lower():
+                try:
+                    self.logger.info("Tentando fallback para CPU...")
+                    self.whisper_model = WhisperModel(
+                        self.model_size,
+                        device="cpu",
+                        compute_type="int8",
+                    )
+                    self.logger.info("Modelo Whisper carregado via CPU (fallback).")
+                    return
+                except Exception as e2:
+                    self.logger.error(f"Fallback para CPU também falhou: {e2}")
             self.whisper_model = None
 
     def listen(self) -> str | None:

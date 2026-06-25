@@ -23,6 +23,7 @@ from alfred.voice.wake_word import WakeWordDetector
 from alfred.voice.sounds import SoundPlayer
 from alfred.memory.memory_manager import MemoryManager
 from alfred.actions.action_executor import ActionExecutor
+from alfred.vision.vision_module import VisionModule
 from alfred.ui.display import Display, State
 from alfred.utils.logger import console
 
@@ -67,6 +68,9 @@ class Orchestrator:
 
         self.logger.info("Inicializando [bold]Actions[/] (OS Control)...")
         self.actions = ActionExecutor(config, logger)
+
+        self.logger.info("Inicializando [bold]Vision[/] (Câmera/Face)...")
+        self.vision = VisionModule(config, logger)
 
     def run(self):
         """
@@ -351,7 +355,7 @@ class Orchestrator:
 
         # --- Identificação Visual ---
         image_path = None
-        if hasattr(self, 'vision') and self.vision.is_available:
+        if self.vision.is_available:
             if self.vision.face_rec_enabled:
                 identified_name = self.vision.identify_face()
                 if identified_name:

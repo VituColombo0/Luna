@@ -3,7 +3,7 @@
 # Alfred — Instalador Completo (Linux)
 # ═══════════════════════════════════════════════════════════
 # Este script faz TUDO para você:
-#   1. Instala dependências do sistema (portaudio, etc.)
+#   1. Instala Python e dependências do sistema
 #   2. Cria ambiente virtual Python
 #   3. Instala pacotes Python
 #   4. Instala e configura o Ollama
@@ -14,7 +14,8 @@
 # Uso: bash install.sh
 # ═══════════════════════════════════════════════════════════
 
-set -e
+# NÃO usar set -e — queremos tratar erros individualmente
+# para que uma falha não-crítica não aborte tudo.
 
 # ─── Cores e Formatação ────────────────────────────────────
 RED='\033[0;31m'
@@ -45,25 +46,111 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# ─── Verificar Python ─────────────────────────────────────
-PYTHON_CMD=""
-for cmd in python3.12 python3.11 python3.10 python3; do
-    if command -v "$cmd" &> /dev/null; then
-        version=$("$cmd" --version 2>&1 | grep -oP '3\.\d+')
-        major_minor=$(echo "$version" | cut -d. -f1,2)
-        if [ "$(echo "$major_minor >= 3.10" | bc -l 2>/dev/null || echo 0)" = "1" ] || \
-           [[ "$major_minor" == "3.10" ]] || [[ "$major_minor" == "3.11" ]] || \
-           [[ "$major_minor" == "3.12" ]] || [[ "$major_minor" == "3.13" ]]; then
-            PYTHON_CMD="$cmd"
-            break
-        fi
-    fi
-done
+# ─── Detectar gerenciador de pacotes ───────────────────────
+PKG_MANAGER=""
+INSTALL_CMD=""
+UPDATE_CMD=""
 
-if [ -z "$PYTHON_CMD" ]; then
-    fail "Python 3.10+ não encontrado. Instale com:\n    sudo apt install python3.11 python3.11-venv"
+if command -v apt &> /dev/null; then
+    PKG_MANAGER="apt"
+    INSTALL_CMD="sudo apt install -y"
+    UPDATE_CMD="sudo apt update"
+elif command -v dnf &> /dev/null; then
+    PKG_MANAGER="dnf"
+    INSTALL_CMD="sudo dnf install -y"
+    UPDATE_CMD="sudo dnf check-update || true"
+elif command -v pacman &> /dev/null; then
+    PKG_MANAGER="pacman"
+    INSTALL_CMD="sudo pacman -S --noconfirm"
+    UPDATE_CMD="sudo pacman -Sy"
+elif command -v zypper &> /dev/null; then
+    PKG_MANAGER="zypper"
+    INSTALL_CMD="sudo zypper install -y"
+    UPDATE_CMD="sudo zypper refresh"
+else
+    warn "Gerenciador de pacotes não detectado. Instale as dependências manualmente."
 fi
 
+# ─── Atualizar repositórios do sistema ─────────────────────
+if [ -n "$UPDATE_CMD" ]; then
+    info "Atualizando lista de pacotes do sistema..."
+    $UPDATE_CMD > /dev/null 2>&1 || warn "Não foi possível atualizar pacotes. Continuando..."
+fi
+
+# ═══════════════════════════════════════════════════════════
+# PASSO 0: Instalar Python se necessário
+# ═══════════════════════════════════════════════════════════
+_install_python_if_missing() {
+    # Tentar encontrar Python 3.10+
+    local found=""
+    for cmd in python3.13 python3.12 python3.11 python3.10 python3; do
+        if command -v "$cmd" &> /dev/null; then
+            local ver
+            ver=$("$cmd" --version 2>&1 | grep -oP '\d+\.\d+' | head -1)
+            local major minor
+            major=$(echo "$ver" | cut -d. -f1)
+            minor=$(echo "$ver" | cut -d. -f2)
+            if [ "$major" = "3" ] && [ "$minor" -ge 10 ] 2>/dev/null; then
+                found="$cmd"
+                break
+            fi
+        fi
+    done
+
+    if [ -n "$found" ]; then
+        echo "$found"
+        return 0
+    fi
+
+    # Python não encontrado — instalar automaticamente
+    warn "Python 3.10+ não encontrado. Instalando automaticamente..."
+
+    if [ -z "$PKG_MANAGER" ]; then
+        fail "Impossível instalar Python: nenhum gerenciador de pacotes detectado.\n    Instale manualmente: https://www.python.org/downloads/"
+    fi
+
+    case $PKG_MANAGER in
+        apt)
+            # Tentar python3.11 (disponível no Ubuntu 22.04+) ou python3.12
+            $INSTALL_CMD python3.11 python3.11-venv python3.11-dev python3-pip 2>/dev/null \
+                || $INSTALL_CMD python3 python3-venv python3-dev python3-pip 2>/dev/null \
+                || fail "Não foi possível instalar Python. Instale manualmente:\n    sudo apt install python3.11 python3.11-venv python3.11-dev"
+            ;;
+        dnf)
+            $INSTALL_CMD python3.11 python3.11-devel python3-pip 2>/dev/null \
+                || $INSTALL_CMD python3 python3-devel python3-pip 2>/dev/null \
+                || fail "Não foi possível instalar Python."
+            ;;
+        pacman)
+            $INSTALL_CMD python python-pip 2>/dev/null \
+                || fail "Não foi possível instalar Python."
+            ;;
+        zypper)
+            $INSTALL_CMD python311 python311-devel python3-pip 2>/dev/null \
+                || $INSTALL_CMD python3 python3-devel python3-pip 2>/dev/null \
+                || fail "Não foi possível instalar Python."
+            ;;
+    esac
+
+    # Re-procurar Python após instalação
+    for cmd in python3.13 python3.12 python3.11 python3.10 python3; do
+        if command -v "$cmd" &> /dev/null; then
+            local ver
+            ver=$("$cmd" --version 2>&1 | grep -oP '\d+\.\d+' | head -1)
+            local major minor
+            major=$(echo "$ver" | cut -d. -f1)
+            minor=$(echo "$ver" | cut -d. -f2)
+            if [ "$major" = "3" ] && [ "$minor" -ge 10 ] 2>/dev/null; then
+                echo "$cmd"
+                return 0
+            fi
+        fi
+    done
+
+    fail "Python 3.10+ ainda não encontrado após instalação. Instale manualmente."
+}
+
+PYTHON_CMD=$(_install_python_if_missing)
 ok "Python encontrado: $($PYTHON_CMD --version)"
 
 # ═══════════════════════════════════════════════════════════
@@ -71,28 +158,39 @@ ok "Python encontrado: $($PYTHON_CMD --version)"
 # ═══════════════════════════════════════════════════════════
 step 1 "Instalando dependências do sistema..."
 
-# Detectar gerenciador de pacotes
-if command -v apt &> /dev/null; then
-    PKG_MANAGER="apt"
-    PACKAGES="portaudio19-dev python3-dev python3-venv ffmpeg"
-    INSTALL_CMD="sudo apt install -y"
-elif command -v dnf &> /dev/null; then
-    PKG_MANAGER="dnf"
-    PACKAGES="portaudio-devel python3-devel ffmpeg"
-    INSTALL_CMD="sudo dnf install -y"
-elif command -v pacman &> /dev/null; then
-    PKG_MANAGER="pacman"
-    PACKAGES="portaudio python ffmpeg"
-    INSTALL_CMD="sudo pacman -S --noconfirm"
-else
-    warn "Gerenciador de pacotes não detectado. Instale manualmente: portaudio, ffmpeg"
-    PACKAGES=""
-fi
+if [ -n "$PKG_MANAGER" ]; then
+    case $PKG_MANAGER in
+        apt)
+            # Tudo que o Alfred precisa para compilar e funcionar:
+            # - portaudio19-dev: sounddevice/PyAudio
+            # - python3-dev/python3-venv: compilação + venv
+            # - ffmpeg: conversão de áudio (edge-tts)
+            # - build-essential/cmake: compilação do dlib (face-recognition)
+            # - curl: download do Ollama
+            # - git: dependências git
+            # - libopenblas-dev: álgebra linear para dlib/numpy
+            # - libasound2-dev: ALSA (áudio no Linux)
+            PACKAGES="portaudio19-dev python3-dev python3-venv python3-pip ffmpeg \
+                      build-essential cmake curl git libopenblas-dev libasound2-dev"
+            ;;
+        dnf)
+            PACKAGES="portaudio-devel python3-devel python3-pip ffmpeg \
+                      gcc gcc-c++ cmake curl git openblas-devel alsa-lib-devel"
+            ;;
+        pacman)
+            PACKAGES="portaudio python python-pip ffmpeg base-devel cmake curl git openblas"
+            ;;
+        zypper)
+            PACKAGES="portaudio-devel python3-devel python3-pip ffmpeg \
+                      gcc gcc-c++ cmake curl git openblas-devel alsa-devel"
+            ;;
+    esac
 
-if [ -n "$PACKAGES" ]; then
     info "Usando $PKG_MANAGER para instalar: $PACKAGES"
-    $INSTALL_CMD $PACKAGES 2>/dev/null || warn "Algumas dependências podem já estar instaladas"
+    $INSTALL_CMD $PACKAGES 2>/dev/null || warn "Algumas dependências podem já estar instaladas ou indisponíveis."
     ok "Dependências do sistema instaladas"
+else
+    warn "Instale manualmente: portaudio, ffmpeg, cmake, build-essential, curl, git"
 fi
 
 # ═══════════════════════════════════════════════════════════
@@ -101,17 +199,28 @@ fi
 step 2 "Criando ambiente virtual Python..."
 
 if [ -d "venv" ]; then
-    info "Ambiente virtual já existe. Reutilizando."
+    # Verificar se o venv existente funciona
+    if [ -f "venv/bin/activate" ] && "venv/bin/python" --version &>/dev/null; then
+        info "Ambiente virtual já existe e está funcional. Reutilizando."
+    else
+        warn "Ambiente virtual existente está corrompido. Recriando..."
+        rm -rf venv
+        $PYTHON_CMD -m venv venv || fail "Não foi possível criar o venv.\n    Instale com: sudo apt install ${PYTHON_CMD}-venv"
+    fi
 else
-    $PYTHON_CMD -m venv venv || fail "Não foi possível criar o venv. Instale: sudo apt install python3-venv"
+    $PYTHON_CMD -m venv venv || fail "Não foi possível criar o venv.\n    Instale com: sudo apt install ${PYTHON_CMD}-venv"
 fi
 
 source venv/bin/activate
 ok "Ambiente virtual ativado"
 
-# Atualizar pip
-pip install --upgrade pip setuptools wheel -q
-ok "pip atualizado"
+# Atualizar pip (com tratamento de erro)
+pip install --upgrade pip setuptools wheel -q 2>/dev/null
+if [ $? -ne 0 ]; then
+    warn "Falha ao atualizar pip. Tentando continuar com a versão atual..."
+else
+    ok "pip atualizado"
+fi
 
 # ═══════════════════════════════════════════════════════════
 # PASSO 3: Instalar Dependências Python
@@ -120,7 +229,10 @@ step 3 "Instalando dependências Python..."
 
 # Instalar core primeiro (obrigatórias)
 info "Instalando dependências essenciais..."
-pip install -r requirements-core.txt -q 2>&1 | tail -1
+pip install -r requirements-core.txt 2>&1 | tail -5
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    fail "Erro ao instalar dependências essenciais. Verifique os logs acima."
+fi
 ok "Dependências essenciais instaladas"
 
 # Perguntar sobre opcionais
@@ -137,18 +249,30 @@ optional_choice=${optional_choice:-3}
 case $optional_choice in
     1)
         info "Instalando módulo de memória..."
-        pip install -r requirements-memory.txt -q 2>&1 | tail -1
-        ok "Memória instalada"
+        pip install -r requirements-memory.txt 2>&1 | tail -5
+        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            warn "Erro ao instalar módulo de memória. Você pode tentar depois com: pip install -r requirements-memory.txt"
+        else
+            ok "Memória instalada"
+        fi
         ;;
     2)
         info "Instalando módulo de visão..."
-        pip install -r requirements-vision.txt -q 2>&1 | tail -1
-        ok "Visão instalada"
+        pip install -r requirements-vision.txt 2>&1 | tail -5
+        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            warn "Erro ao instalar módulo de visão. Verifique se cmake e build-essential estão instalados."
+        else
+            ok "Visão instalada"
+        fi
         ;;
     3)
         info "Instalando todos os módulos..."
-        pip install -r requirements-full.txt -q 2>&1 | tail -1
-        ok "Todos os módulos instalados"
+        pip install -r requirements-full.txt 2>&1 | tail -5
+        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            warn "Alguns módulos opcionais podem não ter sido instalados. O Alfred funcionará sem eles."
+        else
+            ok "Todos os módulos instalados"
+        fi
         ;;
     4)
         info "Pulando módulos opcionais."
@@ -160,19 +284,44 @@ esac
 # ═══════════════════════════════════════════════════════════
 step 4 "Configurando Ollama..."
 
+# Verificar se curl está disponível (necessário para instalar o Ollama)
+if ! command -v curl &> /dev/null; then
+    warn "curl não encontrado. Tentando instalar..."
+    if [ -n "$INSTALL_CMD" ]; then
+        $INSTALL_CMD curl 2>/dev/null || fail "Não foi possível instalar curl. Instale manualmente."
+    else
+        fail "curl é necessário para instalar o Ollama. Instale manualmente."
+    fi
+fi
+
 if command -v ollama &> /dev/null; then
     ok "Ollama já instalado"
 else
     info "Instalando Ollama..."
-    curl -fsSL https://ollama.ai/install.sh | sh || fail "Erro ao instalar o Ollama"
+    curl -fsSL https://ollama.com/install.sh | sh || fail "Erro ao instalar o Ollama"
     ok "Ollama instalado"
 fi
 
 # Verificar se o serviço está rodando
-if ! pgrep -x "ollama" > /dev/null; then
+if ! pgrep -x "ollama" > /dev/null 2>&1; then
     info "Iniciando Ollama..."
     ollama serve > /dev/null 2>&1 &
+    sleep 5  # Dar mais tempo para o Ollama iniciar
+fi
+
+# Verificar se o Ollama está respondendo
+OLLAMA_OK=false
+for i in 1 2 3 4 5; do
+    if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+        OLLAMA_OK=true
+        break
+    fi
+    info "Aguardando Ollama iniciar... (tentativa $i/5)"
     sleep 3
+done
+
+if [ "$OLLAMA_OK" = false ]; then
+    warn "Ollama não está respondendo. Continuando, mas pode ser necessário iniciar manualmente: ollama serve"
 fi
 
 # ═══════════════════════════════════════════════════════════
@@ -219,6 +368,9 @@ fi
 # PASSO 6: Configuração Personalizada
 # ═══════════════════════════════════════════════════════════
 step 6 "Configurando seu perfil..."
+
+# Garantir que o diretório config existe
+mkdir -p config
 
 if [ -f "config/config.yaml" ]; then
     echo ""
@@ -311,6 +463,9 @@ YAML
     ok "Configuração salva em config/config.yaml"
 fi
 
+# Garantir que as pastas de dados existem
+mkdir -p data/faces data/memory
+
 # ═══════════════════════════════════════════════════════════
 # PASSO 7: Auto-Start
 # ═══════════════════════════════════════════════════════════
@@ -387,6 +542,27 @@ SERVICE
         info "  cd $SCRIPT_DIR && ./start.sh"
         ;;
 esac
+
+# ═══════════════════════════════════════════════════════════
+# Verificação Final
+# ═══════════════════════════════════════════════════════════
+echo ""
+echo -e "${BOLD}Verificação final...${NC}"
+
+# Testar imports Python essenciais
+IMPORT_ERRORS=""
+for pkg in yaml numpy pygame sounddevice edge_tts ollama rich psutil faster_whisper; do
+    if ! venv/bin/python -c "import $pkg" 2>/dev/null; then
+        IMPORT_ERRORS="$IMPORT_ERRORS $pkg"
+    fi
+done
+
+if [ -n "$IMPORT_ERRORS" ]; then
+    warn "Alguns pacotes não puderam ser importados:$IMPORT_ERRORS"
+    info "Isso pode ser normal para módulos opcionais. O Alfred funcionará sem eles."
+else
+    ok "Todos os pacotes Python essenciais foram verificados"
+fi
 
 # ═══════════════════════════════════════════════════════════
 # Finalização
