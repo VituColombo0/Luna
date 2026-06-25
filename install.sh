@@ -394,12 +394,15 @@ if [ ! -f "config/config.yaml" ] || [[ "$recreate" =~ ^[sS]$ ]]; then
 
     echo ""
     echo -e "${BOLD}Voz do Alfred:${NC}"
-    echo -e "  ${CYAN}[1]${NC} Masculina (Antonio) ${GREEN}← Padrão${NC}"
-    echo -e "  ${CYAN}[2]${NC} Feminina (Francisca)"
-    read -p "Escolha [1/2] (padrão: 1): " voice_choice
+    echo -e "  ${CYAN}[1]${NC} Masculina BR (Antonio) ${GREEN}← Padrão${NC}"
+    echo -e "  ${CYAN}[2]${NC} Feminina BR (Francisca)"
+    echo -e "  ${CYAN}[3]${NC} Masculina PT (Voz parecida com J.A.R.V.I.S.)"
+    read -p "Escolha [1/2/3] (padrão: 1): " voice_choice
     voice_choice=${voice_choice:-1}
 
-    if [ "$voice_choice" = "2" ]; then
+    if [ "$voice_choice" = "3" ]; then
+        TTS_VOICE="pt-PT-DuarteNeural"
+    elif [ "$voice_choice" = "2" ]; then
         TTS_VOICE="pt-BR-FranciscaNeural"
     else
         TTS_VOICE="pt-BR-AntonioNeural"
