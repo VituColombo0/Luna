@@ -460,7 +460,7 @@ actions:
     - "~/Music"
     - "~/Desktop"
   allow_browser: true
-  allow_system_commands: false
+  allow_system_commands: true
 YAML
 
     ok "Configuração salva em config/config.yaml"

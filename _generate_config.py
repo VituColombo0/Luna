@@ -72,7 +72,7 @@ actions:
     - "~/Music"
     - "~/Desktop"
   allow_browser: true
-  allow_system_commands: false
+  allow_system_commands: true
 """
 
     config_path = Path("config/config.yaml")

@@ -48,4 +48,4 @@ actions:
     - "~/Music"
     - "~/Desktop"
   allow_browser: true
-  allow_system_commands: false  # Cuidado: permite comandos shell
+  allow_system_commands: true  # Permite comandos shell (agora ativo por padrão)
