@@ -39,7 +39,7 @@ class Listener:
     DTYPE = "int16"
 
     # Detecção de silêncio
-    SILENCE_THRESHOLD = 500  # Amplitude mínima para considerar fala
+    SILENCE_THRESHOLD = 150  # Amplitude mínima para considerar fala (calibrado em runtime)
     SILENCE_DURATION = 1.5  # Segundos de silêncio para parar
     MAX_DURATION = 30  # Duração máxima de gravação em segundos
 
@@ -57,6 +57,9 @@ class Listener:
                 "sounddevice não disponível — modo de voz desativado. "
                 "Instale com: [cyan]pip install sounddevice[/]"
             )
+        else:
+            # Auto-calibrar threshold do microfone
+            self._calibrate_silence_threshold()
 
         if WHISPER_AVAILABLE:
             self._load_model()
@@ -65,6 +68,33 @@ class Listener:
                 "faster-whisper não disponível. "
                 "Instale com: [cyan]pip install faster-whisper[/]"
             )
+
+    def _calibrate_silence_threshold(self):
+        """
+        Mede o ruído ambiente por ~1 segundo e ajusta o SILENCE_THRESHOLD
+        para ficar acima do ruído, garantindo detecção de fala mesmo em
+        ambientes silenciosos ou com microfones de sensibilidade variada.
+        """
+        try:
+            samples = int(self.SAMPLE_RATE * 1.0)
+            noise = sd.rec(
+                samples,
+                samplerate=self.SAMPLE_RATE,
+                channels=self.CHANNELS,
+                dtype=self.DTYPE,
+            )
+            sd.wait()
+            noise_level = np.abs(noise).mean()
+
+            # Threshold = ruído + margem de 80% (precisa de mais margem para fala contínua)
+            calibrated = max(int(noise_level * 1.8), 50)
+            self.SILENCE_THRESHOLD = calibrated
+            self.logger.info(
+                f"Microfone calibrado — ruído: [cyan]{noise_level:.0f}[/], "
+                f"threshold: [cyan]{calibrated}[/]"
+            )
+        except Exception as e:
+            self.logger.debug(f"Não foi possível calibrar microfone: {e}")
 
     def _load_model(self):
         """Carrega o modelo Whisper na memória."""

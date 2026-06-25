@@ -49,9 +49,9 @@ class WakeWordDetector:
     DTYPE = "int16"
 
     # Detecção de atividade de voz
-    ENERGY_THRESHOLD = 300         # Limiar de energia para considerar fala
-    CHUNK_DURATION = 2.0           # Duração do chunk em segundos
-    SILENCE_SKIP_DURATION = 0.3    # Duração para checar silêncio antes de gravar
+    ENERGY_THRESHOLD = 80            # Limiar de energia para considerar fala (baixo para captar mais)
+    CHUNK_DURATION = 2.5             # Duração do chunk em segundos
+    SILENCE_SKIP_DURATION = 0.3      # Duração para checar silêncio antes de gravar
 
     def __init__(self, config: dict, logger: logging.Logger):
         self.config = config.get("voice", {})
@@ -84,6 +84,38 @@ class WakeWordDetector:
                 "faster-whisper não disponível — wake word desativado."
             )
 
+        # Auto-calibrar nível de ruído ambiente
+        if SOUNDDEVICE_AVAILABLE:
+            self._calibrate_noise_floor()
+
+    def _calibrate_noise_floor(self):
+        """
+        Mede o nível de ruído ambiente por ~1 segundo e ajusta
+        o ENERGY_THRESHOLD para ficar ligeiramente acima disso.
+        Evita que o mic fique 'surdo' em ambientes muito silenciosos
+        ou disparando em ambientes ruidosos.
+        """
+        try:
+            samples = int(self.SAMPLE_RATE * 1.0)
+            noise_sample = sd.rec(
+                samples,
+                samplerate=self.SAMPLE_RATE,
+                channels=self.CHANNELS,
+                dtype=self.DTYPE,
+            )
+            sd.wait()
+            noise_level = np.abs(noise_sample).mean()
+
+            # Threshold = ruído ambiente + margem de 50%
+            calibrated = max(int(noise_level * 1.5), 30)  # mínimo de 30
+            self.ENERGY_THRESHOLD = calibrated
+            self.logger.info(
+                f"Ruído ambiente: [cyan]{noise_level:.0f}[/] → "
+                f"threshold calibrado: [cyan]{calibrated}[/]"
+            )
+        except Exception as e:
+            self.logger.debug(f"Não foi possível calibrar microfone: {e}")
+
     def _build_variants(self, wake_word: str) -> list[str]:
         """
         Constrói variações da wake word para lidar com erros
@@ -101,6 +133,8 @@ class WakeWordDetector:
             variants.extend([
                 "alfred", "alfredo", "alfrede", "alfret",
                 "al fred", "alford", "elfred",
+                "alfread", "alferd", "olfred", "alfrid",
+                "all fred", "alfred.", "alfre", "alfrede",
             ])
 
         return list(set(v.lower() for v in variants))

@@ -47,6 +47,26 @@ AVAILABLE_ACTIONS = [
         "description": "Anotar algo importante para lembrar depois",
         "parameters": {"content": "Conteúdo da anotação"},
     },
+    {
+        "name": "run_command",
+        "description": "Executar um comando no terminal/shell do sistema operacional (ex: ls, mkdir, pip install, etc.)",
+        "parameters": {"command": "Comando a executar no terminal"},
+    },
+    {
+        "name": "open_application",
+        "description": "Abrir um aplicativo pelo nome (ex: firefox, code, nautilus, terminal, spotify, discord)",
+        "parameters": {"app_name": "Nome do aplicativo a abrir"},
+    },
+    {
+        "name": "control_volume",
+        "description": "Controlar o volume do sistema (aumentar, diminuir, mutar/desmutar)",
+        "parameters": {"action": "up, down, mute, unmute ou um número de 0-100"},
+    },
+    {
+        "name": "list_processes",
+        "description": "Listar processos em execução ou matar um processo pelo nome",
+        "parameters": {"action": "list ou kill", "name": "nome do processo (para kill)"},
+    },
 ]
 
 
@@ -126,6 +146,9 @@ REGRAS:
 4. Quando executar uma ação, confirme o que vai fazer antes ou depois.
 5. Se não souber algo, diga honestamente.
 6. Mantenha respostas concisas — você está falando por voz, então respostas longas ficam cansativas.
+7. Seja PROATIVO: se o usuário pedir algo que envolva o computador (abrir app, pesquisar, volume, etc.), USE as ações disponíveis. Não diga "você pode fazer isso manualmente" — FAÇA você mesmo.
+8. Para abrir aplicativos, use a ação "open_application". Para executar qualquer comando no terminal, use "run_command". Para controlar o volume, use "control_volume".
+9. Você pode executar QUALQUER comando de terminal via run_command (ls, mkdir, cat, pip, apt, etc.). Use esse poder para ajudar seu dono.
 """
         return prompt
 

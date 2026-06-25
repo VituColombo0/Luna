@@ -72,6 +72,10 @@ class ActionExecutor:
             "search_files": self._search_files,
             "system_info": self._system_info,
             "take_note": self._take_note,
+            "run_command": self._run_command,
+            "open_application": self._open_application,
+            "control_volume": self._control_volume,
+            "list_processes": self._list_processes,
         }
 
         handler = handlers.get(action_name)
@@ -224,6 +228,231 @@ class ActionExecutor:
             f.write(f"\n## [{timestamp}]\n{content}\n")
 
         return f"Nota salva em: {note_file}"
+
+    def _run_command(self, params: dict) -> str:
+        """Executa um comando no terminal/shell do sistema."""
+        command = params.get("command", "")
+        if not command:
+            return "Comando não especificado."
+
+        if not self.allow_system_commands:
+            return "Comandos de sistema estão desativados na configuração."
+
+        # Bloquear comandos destrutivos óbvios
+        dangerous = ["rm -rf /", "mkfs", "dd if=", ":(){:|:&};:", "format c:"]
+        if any(d in command.lower() for d in dangerous):
+            return "Comando bloqueado por segurança."
+
+        try:
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=os.path.expanduser("~"),
+            )
+
+            output = result.stdout.strip() if result.stdout else ""
+            error = result.stderr.strip() if result.stderr else ""
+
+            if result.returncode == 0:
+                response = f"Comando executado com sucesso."
+                if output:
+                    # Limitar output para não sobrecarregar o TTS
+                    lines = output.split("\n")
+                    if len(lines) > 10:
+                        response += f"\nSaída ({len(lines)} linhas):\n" + "\n".join(lines[:10]) + "\n..."
+                    else:
+                        response += f"\nSaída:\n{output}"
+                return response
+            else:
+                return f"Erro no comando (código {result.returncode}): {error or output}"
+
+        except subprocess.TimeoutExpired:
+            return "Comando excedeu o tempo limite de 30 segundos."
+        except Exception as e:
+            return f"Erro ao executar comando: {e}"
+
+    def _open_application(self, params: dict) -> str:
+        """Abre um aplicativo pelo nome."""
+        app_name = params.get("app_name", "").lower()
+        if not app_name:
+            return "Nome do aplicativo não especificado."
+
+        # Mapa de aliases de aplicativos comuns
+        app_aliases = {
+            # Navegadores
+            "chrome": "google-chrome",
+            "google chrome": "google-chrome",
+            "firefox": "firefox",
+            "brave": "brave-browser",
+            # Editores
+            "code": "code",
+            "vscode": "code",
+            "visual studio code": "code",
+            "vim": "vim",
+            "nano": "nano",
+            # Gerenciadores de arquivos
+            "arquivos": "nautilus",
+            "nautilus": "nautilus",
+            "explorador": "nautilus",
+            "files": "nautilus",
+            "thunar": "thunar",
+            "dolphin": "dolphin",
+            # Terminal
+            "terminal": "x-terminal-emulator",
+            "konsole": "konsole",
+            "gnome-terminal": "gnome-terminal",
+            # Mídia
+            "spotify": "spotify",
+            "vlc": "vlc",
+            # Comunicação
+            "discord": "discord",
+            "telegram": "telegram-desktop",
+            "slack": "slack",
+            # Utilitários
+            "calculadora": "gnome-calculator",
+            "calculator": "gnome-calculator",
+            "configurações": "gnome-control-center",
+            "settings": "gnome-control-center",
+            "monitor do sistema": "gnome-system-monitor",
+        }
+
+        if self.system == "Windows":
+            app_aliases.update({
+                "arquivos": "explorer",
+                "explorador": "explorer",
+                "files": "explorer",
+                "terminal": "cmd",
+                "powershell": "powershell",
+                "configurações": "ms-settings:",
+                "settings": "ms-settings:",
+                "calculadora": "calc",
+                "calculator": "calc",
+                "notepad": "notepad",
+                "bloco de notas": "notepad",
+            })
+
+        actual_app = app_aliases.get(app_name, app_name)
+
+        try:
+            if self.system == "Windows":
+                if actual_app.startswith("ms-"):
+                    os.startfile(actual_app)
+                else:
+                    subprocess.Popen([actual_app], shell=True)
+            else:
+                subprocess.Popen(
+                    [actual_app],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+
+            return f"Abrindo {app_name}..."
+        except FileNotFoundError:
+            return f"Aplicativo '{app_name}' não encontrado no sistema."
+        except Exception as e:
+            return f"Erro ao abrir {app_name}: {e}"
+
+    def _control_volume(self, params: dict) -> str:
+        """Controla o volume do sistema."""
+        action = params.get("action", "").lower()
+        if not action:
+            return "Ação de volume não especificada."
+
+        try:
+            if self.system == "Linux":
+                if action == "up":
+                    subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "10%+"],
+                                   capture_output=True)
+                    return "Volume aumentado em 10%."
+                elif action == "down":
+                    subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "10%-"],
+                                   capture_output=True)
+                    return "Volume diminuído em 10%."
+                elif action == "mute":
+                    subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "mute"],
+                                   capture_output=True)
+                    return "Volume mutado."
+                elif action == "unmute":
+                    subprocess.run(["amixer", "-D", "pulse", "sset", "Master", "unmute"],
+                                   capture_output=True)
+                    return "Volume desmutado."
+                elif action.isdigit():
+                    level = min(int(action), 100)
+                    subprocess.run(["amixer", "-D", "pulse", "sset", "Master", f"{level}%"],
+                                   capture_output=True)
+                    return f"Volume ajustado para {level}%."
+                else:
+                    return f"Ação de volume desconhecida: {action}"
+
+            elif self.system == "Windows":
+                # Usar nircmd se disponível, senão PowerShell
+                if action == "mute":
+                    subprocess.run(
+                        ["powershell", "-c",
+                         "(New-Object -ComObject WScript.Shell).SendKeys([char]173)"],
+                        capture_output=True,
+                    )
+                    return "Volume mutado."
+                else:
+                    return "Controle de volume no Windows requer nircmd."
+            else:
+                return f"Controle de volume não suportado em {self.system}."
+
+        except FileNotFoundError:
+            return "amixer não encontrado. Instale alsa-utils."
+        except Exception as e:
+            return f"Erro ao controlar volume: {e}"
+
+    def _list_processes(self, params: dict) -> str:
+        """Lista ou mata processos."""
+        if not PSUTIL_AVAILABLE:
+            return "psutil não disponível."
+
+        action = params.get("action", "list").lower()
+
+        if action == "list":
+            try:
+                procs = []
+                for p in psutil.process_iter(["pid", "name", "cpu_percent", "memory_percent"]):
+                    info = p.info
+                    if info["cpu_percent"] and info["cpu_percent"] > 0.1:
+                        procs.append(info)
+
+                procs.sort(key=lambda x: x.get("cpu_percent", 0), reverse=True)
+                top = procs[:10]
+
+                if not top:
+                    return "Nenhum processo com uso significativo de CPU."
+
+                lines = [f"  • {p['name']} (PID {p['pid']}) — CPU: {p['cpu_percent']:.1f}%, RAM: {p['memory_percent']:.1f}%"
+                         for p in top]
+                return "Top 10 processos:\n" + "\n".join(lines)
+            except Exception as e:
+                return f"Erro ao listar processos: {e}"
+
+        elif action == "kill":
+            name = params.get("name", "")
+            if not name:
+                return "Nome do processo não especificado."
+
+            killed = 0
+            for p in psutil.process_iter(["name"]):
+                if name.lower() in p.info["name"].lower():
+                    try:
+                        p.kill()
+                        killed += 1
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+
+            if killed:
+                return f"Encerrados {killed} processo(s) com nome '{name}'."
+            else:
+                return f"Nenhum processo encontrado com nome '{name}'."
+
+        return f"Ação desconhecida: {action}"
 
     def _is_path_allowed(self, path: str) -> bool:
         """Verifica se um caminho está dentro dos diretórios permitidos."""
