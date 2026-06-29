@@ -1,5 +1,5 @@
 """
-MemoryManager — Memória de longo prazo do Alfred usando ChromaDB.
+MemoryManager — Memória de longo prazo da Luna usando ChromaDB.
 
 Armazena conversas como embeddings vetoriais para busca semântica.
 Quando o usuário faz uma pergunta, o sistema busca memórias relevantes
@@ -23,10 +23,10 @@ except ImportError:
 
 class MemoryManager:
     """
-    Gerencia a memória de longo prazo do Alfred via ChromaDB.
+    Gerencia a memória de longo prazo da Luna via ChromaDB.
     """
 
-    COLLECTION_NAME = "alfred_memory"
+    COLLECTION_NAME = "luna_memory"
 
     def __init__(self, config: dict, logger: logging.Logger):
         self.config = config.get("memory", {})
@@ -81,7 +81,7 @@ class MemoryManager:
 
         Args:
             user_message: O que o usuário disse.
-            assistant_response: O que o Alfred respondeu.
+            assistant_response: O que a Luna respondeu.
             user_name: Nome do usuário que falou.
         """
         if not self.enabled or not self.auto_save:
@@ -92,7 +92,7 @@ class MemoryManager:
             doc_id = f"mem_{now.strftime('%Y%m%d_%H%M%S_%f')}"
 
             # O documento que será embedding é a conversa completa, marcando o locutor
-            document = f"{user_name}: {user_message}\nAlfred: {assistant_response}"
+            document = f"{user_name}: {user_message}\nLuna: {assistant_response}"
 
             self.collection.add(
                 documents=[document],

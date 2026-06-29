@@ -1,7 +1,7 @@
 """
-Display — Interface visual animada do Alfred no terminal.
+Display — Interface visual animada da Luna no terminal.
 
-Mostra o estado atual do Alfred com animações:
+Mostra o estado atual da Luna com animações:
 - IDLE: Logo estático com hora e data
 - LISTENING: Onda pulsante indicando que está ouvindo
 - THINKING: Animação de processamento
@@ -30,7 +30,7 @@ from datetime import datetime
 
 
 class State(Enum):
-    """Estados visuais do Alfred."""
+    """Estados visuais da Luna."""
     IDLE = auto()
     LISTENING = auto()
     THINKING = auto()
@@ -57,7 +57,7 @@ WAVE_CHARS_THIN = "░▒▓█"
 
 class Display:
     """
-    Interface visual animada do Alfred.
+    Interface visual animada da Luna.
     Roda em uma thread separada e atualiza o terminal em tempo real.
     """
 
@@ -65,7 +65,7 @@ class Display:
         self.console = Console()
         self.user_name = user_name
         self.state = State.IDLE
-        self.current_text = ""          # Texto sendo exibido (fala do Alfred)
+        self.current_text = ""          # Texto sendo exibido (fala da Luna)
         self.subtitle = ""              # Subtexto/status secundário
         self._running = False
         self._thread: threading.Thread | None = None
@@ -78,7 +78,7 @@ class Display:
     # ─── Controle de Estado ────────────────────────────────────
 
     def set_state(self, state: State, text: str = "", subtitle: str = ""):
-        """Muda o estado visual do Alfred."""
+        """Muda o estado visual da Luna."""
         with self._lock:
             self.state = state
             self.current_text = text
@@ -141,7 +141,7 @@ class Display:
 
         return Panel(
             Align.center(content),
-            title=f"[bold]Alfred[/] — {state_labels.get(state, '')}",
+            title=f"[bold]Luna[/] — {state_labels.get(state, '')}",
             subtitle=f"[dim]{time_str} • {date_str}[/]",
             border_style=border_colors.get(state, "white"),
             width=self.width,
@@ -174,9 +174,9 @@ class Display:
 
         content = Text()
         content.append(f"\n  {pulse} ", style="bright_blue")
-        content.append("Alfred", style="bold bright_white")
+        content.append("Luna", style="bold bright_white")
         content.append(" está pronto\n\n", style="dim")
-        content.append(f'  Diga "Alfred" ou digite para começar\n', style="dim italic")
+        content.append(f'  Diga "Luna" ou digite para começar\n', style="dim italic")
 
         return content
 

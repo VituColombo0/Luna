@@ -1,8 +1,8 @@
 """
-WakeWordDetector — Detecção contínua de wake word para o Alfred.
+WakeWordDetector — Detecção contínua de wake word para a Luna.
 
 Funciona como a Alexa: fica ouvindo em background 24/7 com baixo uso de CPU.
-Quando detecta a palavra "Alfred", emite um beep e ativa o modo de escuta.
+Quando detecta a palavra "Luna", emite um beep e ativa o modo de escuta.
 
 Estratégia:
 1. Captura áudio continuamente em chunks curtos (1-2 segundos)
@@ -57,7 +57,7 @@ class WakeWordDetector:
         self.config = config.get("voice", {})
         self.logger = logger
 
-        self.wake_word = self.config.get("wake_word", "alfred").lower()
+        self.wake_word = self.config.get("wake_word", "luna").lower()
         # Variações comuns do wake word (erros de transcrição do Whisper)
         self.wake_word_variants = self._build_variants(self.wake_word)
 
@@ -129,12 +129,12 @@ class WakeWordDetector:
         """
         variants = [wake_word]
 
-        if wake_word == "alfred":
+        if wake_word == "luna":
             variants.extend([
-                "alfred", "alfredo", "alfrede", "alfret",
-                "al fred", "alford", "elfred",
-                "alfread", "alferd", "olfred", "alfrid",
-                "all fred", "alfred.", "alfre", "alfrede",
+                "luna", "luana", "luná", "luna.",
+                "lu na", "louna", "lona",
+                "lunna", "lúna", "luna!", "lunah",
+                "luuna", "luna,", "lun", "luna?",
             ])
 
         return list(set(v.lower() for v in variants))
@@ -223,7 +223,7 @@ class WakeWordDetector:
             self._thread = None
 
     def pause(self):
-        """Pausa temporariamente a detecção (durante fala do Alfred)."""
+        """Pausa temporariamente a detecção (durante fala da Luna)."""
         with self._lock:
             self._paused = True
 
@@ -360,8 +360,8 @@ class WakeWordDetector:
         Extrai o comando após a wake word.
 
         Exemplo:
-            "Alfred, que horas são?" → "que horas são?"
-            "Alfred" → "" (sem comando, apenas ativação)
+            "Luna, que horas são?" → "que horas são?"
+            "Luna" → "" (sem comando, apenas ativação)
 
         Args:
             text: Texto completo transcrito.

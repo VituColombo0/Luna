@@ -1,5 +1,5 @@
 # ============================================
-# Alfred — Todas as Dependências
+# Luna — Todas as Dependências
 # ============================================
 # Este arquivo instala TUDO. Para instalação
 # modular, veja requirements-core/memory/vision.txt

@@ -30,7 +30,7 @@ except ImportError:
 
 class Listener:
     """
-    Ouvinte do Alfred — captura áudio do microfone e transcreve para texto.
+    Ouvinte do Luna — captura áudio do microfone e transcreve para texto.
     """
 
     # Configurações de áudio

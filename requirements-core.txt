@@ -1,7 +1,7 @@
 # ============================================
-# Alfred — Dependências Essenciais (Core)
+# Luna — Dependências Essenciais (Core)
 # ============================================
-# Estas são as dependências mínimas para rodar o Alfred
+# Estas são as dependências mínimas para rodar a Luna
 # com voz e interação por texto.
 
 # LLM via Ollama

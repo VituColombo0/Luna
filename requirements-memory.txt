@@ -1,5 +1,5 @@
 # ============================================
-# Alfred — Módulo de Memória (Opcional)
+# Luna — Módulo de Memória (Opcional)
 # ============================================
 # Memória de longo prazo com busca semântica.
 # Instalar com: pip install -r requirements-memory.txt

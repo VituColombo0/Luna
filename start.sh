@@ -1,51 +1,55 @@
 #!/bin/bash
 # ============================================
-# Alfred — Script de inicialização (Linux)
+# Luna — Script de Inicialização (Linux)
 # ============================================
-# Este script inicia o Alfred automaticamente.
-# Usado pelo autostart e systemd para rodar no boot.
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VENV_DIR="$SCRIPT_DIR/venv"
-LOG_DIR="$SCRIPT_DIR/data"
-LOG_FILE="$LOG_DIR/alfred.log"
+set -e
 
-# Criar pasta de logs e dados se não existirem
-mkdir -p "$LOG_DIR"
-mkdir -p "$SCRIPT_DIR/data/faces"
-mkdir -p "$SCRIPT_DIR/data/memory"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
-# Ativar virtualenv
-if [ -f "$VENV_DIR/bin/activate" ]; then
-    source "$VENV_DIR/bin/activate"
-else
-    echo "Erro: virtualenv não encontrado em $VENV_DIR"
-    echo "Execute o instalador primeiro: bash install.sh"
+echo ""
+echo "🌙 Luna — Assistente Pessoal de IA"
+echo "===================================="
+
+# Verificar Python
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Python3 não encontrado. Execute install.sh primeiro."
     exit 1
 fi
 
-# Garantir que PulseAudio está disponível (para áudio no autostart)
-if [ -z "$PULSE_SERVER" ]; then
-    export PULSE_SERVER="unix:/run/user/$(id -u)/pulse/native"
+# Verificar ambiente virtual
+if [ -d "venv" ]; then
+    source venv/bin/activate
+    echo "✅ Ambiente virtual ativado"
+else
+    echo "⚠️  Ambiente virtual não encontrado. Usando Python global."
 fi
 
-# Verificar se o Ollama está rodando, senão iniciar
-if ! pgrep -x "ollama" > /dev/null 2>&1; then
-    echo "[$(date)] Iniciando Ollama em background..." >> "$LOG_FILE"
-    ollama serve > /dev/null 2>&1 &
-    sleep 5  # Dar mais tempo para o Ollama iniciar completamente
-fi
-
-# Aguardar Ollama ficar disponível
-for i in 1 2 3 4 5; do
-    if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
-        break
+# Verificar se Ollama está rodando
+if command -v ollama &> /dev/null; then
+    if ! pgrep -x "ollama" > /dev/null 2>&1; then
+        echo "🔄 Iniciando Ollama em background..."
+        nohup ollama serve > /dev/null 2>&1 &
+        sleep 2
     fi
-    echo "[$(date)] Aguardando Ollama iniciar... (tentativa $i/5)" >> "$LOG_FILE"
-    sleep 3
-done
+    echo "✅ Ollama está rodando"
+else
+    echo "⚠️  Ollama não encontrado. Instale em: https://ollama.com"
+fi
 
-# Iniciar o Alfred
-echo "[$(date)] Iniciando Alfred..." >> "$LOG_FILE"
-cd "$SCRIPT_DIR"
-python -m alfred 2>&1 | tee -a "$LOG_FILE"
+# Modo headless (sem terminal visível)
+if [ "$1" = "--headless" ] || [ "$1" = "--no-console" ]; then
+    echo "🔇 Iniciando em modo headless (background)..."
+    nohup python3 -m luna --headless > /tmp/luna.log 2>&1 &
+    LUNA_PID=$!
+    echo "   PID: $LUNA_PID"
+    echo "   Log: /tmp/luna.log"
+    echo "   Para parar: kill $LUNA_PID"
+    exit 0
+fi
+
+echo ""
+echo "🚀 Iniciando Luna..."
+echo ""
+python3 -m luna "$@"

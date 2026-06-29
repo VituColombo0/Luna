@@ -1,5 +1,5 @@
 """
-Sounds — Gerador de sons de feedback para o Alfred.
+Sounds — Gerador de sons de feedback para a Luna.
 
 Gera sons programaticamente usando numpy + pygame.
 Não precisa de arquivos de áudio externos.

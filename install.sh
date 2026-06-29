@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════
-# Alfred — Instalador Completo (Linux)
+# Luna — Instalador Completo (Linux)
 # ═══════════════════════════════════════════════════════════
 # Este script faz TUDO para você:
 #   1. Instala Python e dependências do sistema
@@ -38,7 +38,7 @@ TOTAL_STEPS=7
 # ─── Banner ────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║${NC}  ${BOLD}🧠 Alfred — Instalador Automático${NC}          ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  ${BOLD}🧠 Luna — Instalador Automático${NC}          ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  ${DIM}Assistente Pessoal de IA Local${NC}              ${CYAN}║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
 echo ""
@@ -161,7 +161,7 @@ step 1 "Instalando dependências do sistema..."
 if [ -n "$PKG_MANAGER" ]; then
     case $PKG_MANAGER in
         apt)
-            # Tudo que o Alfred precisa para compilar e funcionar:
+            # Tudo que a Luna precisa para compilar e funcionar:
             # - portaudio19-dev: sounddevice/PyAudio
             # - python3-dev/python3-venv: compilação + venv
             # - ffmpeg: conversão de áudio (edge-tts)
@@ -269,7 +269,7 @@ case $optional_choice in
         info "Instalando todos os módulos..."
         pip install -r requirements-full.txt 2>&1 | tail -5
         if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            warn "Alguns módulos opcionais podem não ter sido instalados. O Alfred funcionará sem eles."
+            warn "Alguns módulos opcionais podem não ter sido instalados. A Luna funcionará sem eles."
         else
             ok "Todos os módulos instalados"
         fi
@@ -393,7 +393,7 @@ if [ ! -f "config/config.yaml" ] || [[ "$recreate" =~ ^[sS]$ ]]; then
     bio=${bio:-"Entusiasta de tecnologia."}
 
     echo ""
-    echo -e "${BOLD}Voz do Alfred:${NC}"
+    echo -e "${BOLD}Voz da Luna:${NC}"
     echo -e "  ${CYAN}[1]${NC} Masculina BR (Antonio) ${GREEN}← Padrão${NC}"
     echo -e "  ${CYAN}[2]${NC} Feminina BR (Francisca)"
     echo -e "  ${CYAN}[3]${NC} Masculina PT (Voz parecida com J.A.R.V.I.S.)"
@@ -411,7 +411,7 @@ if [ ! -f "config/config.yaml" ] || [[ "$recreate" =~ ^[sS]$ ]]; then
     # Gerar config.yaml
     cat > config/config.yaml << YAML
 # ============================================
-# Alfred — Configuração Pessoal
+# Luna — Configuração Pessoal
 # ============================================
 # Gerado automaticamente por install.sh
 
@@ -434,7 +434,7 @@ voice:
   stt_language: "pt"
   tts_engine: "edge-tts"
   tts_voice: "$TTS_VOICE"
-  wake_word: "alfred"
+  wake_word: "luna"
 
 # --- Visão ---
 vision:
@@ -475,7 +475,7 @@ mkdir -p data/faces data/memory
 step 7 "Configurando auto-start..."
 
 echo ""
-echo -e "${BOLD}Iniciar Alfred automaticamente no boot?${NC}"
+echo -e "${BOLD}Iniciar Luna automaticamente no boot?${NC}"
 echo -e "  ${CYAN}[1]${NC} Sim, via autostart do desktop ${GREEN}← Recomendado${NC}"
 echo -e "  ${CYAN}[2]${NC} Sim, via systemd (headless/servidor)"
 echo -e "  ${CYAN}[3]${NC} Não configurar agora"
@@ -489,10 +489,10 @@ case $autostart_choice in
         AUTOSTART_DIR="$HOME/.config/autostart"
         mkdir -p "$AUTOSTART_DIR"
 
-        cat > "$AUTOSTART_DIR/alfred.desktop" << DESKTOP
+        cat > "$AUTOSTART_DIR/luna.desktop" << DESKTOP
 [Desktop Entry]
 Type=Application
-Name=Alfred - Assistente de IA
+Name=Luna - Assistente Pessoal de IA
 Comment=Assistente pessoal de IA local
 Exec=$SCRIPT_DIR/start.sh
 Terminal=false
@@ -505,17 +505,17 @@ DESKTOP
 
         chmod +x "$SCRIPT_DIR/start.sh"
         ok "Auto-start configurado (desktop)"
-        info "Alfred vai iniciar automaticamente no próximo login"
-        info "Para remover: rm $AUTOSTART_DIR/alfred.desktop"
+        info "Luna vai iniciar automaticamente no próximo login"
+        info "Para remover: rm $AUTOSTART_DIR/luna.desktop"
         ;;
     2)
         # Auto-start via systemd (user service)
         SYSTEMD_DIR="$HOME/.config/systemd/user"
         mkdir -p "$SYSTEMD_DIR"
 
-        cat > "$SYSTEMD_DIR/alfred.service" << SERVICE
+        cat > "$SYSTEMD_DIR/luna.service" << SERVICE
 [Unit]
-Description=Alfred - Assistente Pessoal de IA
+Description=Luna - Assistente Pessoal de IA
 After=network.target sound.target
 Wants=pulseaudio.service
 
@@ -524,7 +524,7 @@ Type=simple
 WorkingDirectory=$SCRIPT_DIR
 ExecStartPre=/bin/bash -c 'pgrep ollama || ollama serve &'
 ExecStartPre=/bin/sleep 3
-ExecStart=$SCRIPT_DIR/venv/bin/python -m alfred
+ExecStart=$SCRIPT_DIR/venv/bin/python -m luna
 Restart=on-failure
 RestartSec=10
 Environment=DISPLAY=:0
@@ -535,10 +535,10 @@ WantedBy=default.target
 SERVICE
 
         systemctl --user daemon-reload
-        systemctl --user enable alfred.service
+        systemctl --user enable luna.service
         ok "Serviço systemd configurado"
-        info "Iniciar agora: systemctl --user start alfred"
-        info "Ver logs: journalctl --user -u alfred -f"
+        info "Iniciar agora: systemctl --user start luna"
+        info "Ver logs: journalctl --user -u luna -f"
         ;;
     3)
         info "Auto-start não configurado. Você pode executar manualmente:"
@@ -562,7 +562,7 @@ done
 
 if [ -n "$IMPORT_ERRORS" ]; then
     warn "Alguns pacotes não puderam ser importados:$IMPORT_ERRORS"
-    info "Isso pode ser normal para módulos opcionais. O Alfred funcionará sem eles."
+    info "Isso pode ser normal para módulos opcionais. A Luna funcionará sem eles."
 else
     ok "Todos os pacotes Python essenciais foram verificados"
 fi
@@ -579,7 +579,7 @@ echo -e "  Para iniciar agora:"
 echo -e "    ${CYAN}cd $SCRIPT_DIR && ./start.sh${NC}"
 echo ""
 echo -e "  Ou diretamente:"
-echo -e "    ${CYAN}cd $SCRIPT_DIR && source venv/bin/activate && python -m alfred${NC}"
+echo -e "    ${CYAN}cd $SCRIPT_DIR && source venv/bin/activate && python -m luna${NC}"
 echo ""
-echo -e "  ${DIM}Diga \"Alfred\" e faça sua primeira pergunta! 🎤${NC}"
+echo -e "  ${DIM}Diga \"Luna\" e faça sua primeira pergunta! 🎤${NC}"
 echo ""

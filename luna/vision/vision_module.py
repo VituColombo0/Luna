@@ -1,5 +1,5 @@
 """
-VisionModule — Visão computacional do Alfred.
+VisionModule — Visão computacional da Luna.
 
 Funcionalidades:
 - Captura de imagens da webcam
@@ -30,7 +30,7 @@ import numpy as np
 
 class VisionModule:
     """
-    Módulo de visão do Alfred — câmera, reconhecimento facial e análise de imagem.
+    Módulo de visão do Luna — câmera, reconhecimento facial e análise de imagem.
     """
 
     def __init__(self, config: dict, logger: logging.Logger):
@@ -212,7 +212,7 @@ class VisionModule:
             self.logger.error(f"Erro no reconhecimento facial: {e}")
             return None
 
-    def capture_for_analysis(self, save_path: str = "/tmp/alfred_vision.jpg") -> str | None:
+    def capture_for_analysis(self, save_path: str = "/tmp/luna_vision.jpg") -> str | None:
         """
         Captura um frame e salva para análise pelo modelo de visão.
 

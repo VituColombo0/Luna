@@ -23,7 +23,7 @@ def main():
     tts_voice = sys.argv[5]
 
     config_content = f"""# ============================================
-# Alfred — Configuração Pessoal
+# Luna — Configuração Pessoal
 # ============================================
 # Gerado automaticamente por install.bat
 
@@ -46,7 +46,7 @@ voice:
   stt_language: "pt"
   tts_engine: "edge-tts"
   tts_voice: "{tts_voice}"
-  wake_word: "alfred"
+  wake_word: "luna"
 
 # --- Visão ---
 vision:
@@ -58,7 +58,7 @@ vision:
 # --- Memória ---
 memory:
   enabled: true
-  db_path: "data/memory"
+  db_path: "data/luna_memory"
   max_context_items: 5
   auto_save: true
 

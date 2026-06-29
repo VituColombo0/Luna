@@ -1,6 +1,6 @@
 @echo off
 REM ═══════════════════════════════════════════════════════════
-REM Alfred — Instalador Completo (Windows)
+REM Luna — Instalador Completo (Windows)
 REM ═══════════════════════════════════════════════════════════
 REM Este script faz TUDO para voce:
 REM   1. Instala Python se necessario (via winget)
@@ -16,7 +16,7 @@ setlocal enabledelayedexpansion
 
 echo.
 echo ╔══════════════════════════════════════════════╗
-echo ║  🧠 Alfred — Instalador Automatico          ║
+echo ║  🧠 Luna — Instalador Automatico          ║
 echo ║  Assistente Pessoal de IA Local              ║
 echo ╚══════════════════════════════════════════════╝
 echo.
@@ -235,7 +235,7 @@ set /p bio="Descricao sobre voce: "
 if "%bio%"=="" set bio=Entusiasta de tecnologia.
 
 echo.
-echo Voz do Alfred:
+echo Voz da Luna:
 echo   [1] Masculina BR (Antonio) ^<-- Padrao
 echo   [2] Feminina BR (Francisca)
 echo   [3] Masculina PT (Voz parecida com J.A.R.V.I.S.)
@@ -257,7 +257,7 @@ REM ─── Auto-Start ──────────────────�
 echo.
 echo [7/7] Configurando auto-start...
 echo.
-echo Iniciar Alfred automaticamente com o Windows?
+echo Iniciar Luna automaticamente com o Windows?
 echo   [1] Sim (adicionar na pasta Startup)
 echo   [2] Nao
 set /p autostart_choice="Escolha [1/2] (padrao: 1): "
@@ -272,12 +272,12 @@ if "%autostart_choice%"=="1" (
     echo call venv\Scripts\activate.bat
     echo start /min "" ollama serve
     echo timeout /t 5 /nobreak ^>nul
-    echo python -m alfred
-    ) > "!STARTUP_DIR!\Alfred.bat"
+    echo python -m luna
+    ) > "!STARTUP_DIR!\Luna.bat"
 
     echo ✅ Auto-start configurado
-    echo ℹ  Alfred vai iniciar com o Windows
-    echo ℹ  Para remover: delete "!STARTUP_DIR!\Alfred.bat"
+    echo ℹ  Luna vai iniciar com o Windows
+    echo ℹ  Para remover: delete "!STARTUP_DIR!\Luna.bat"
 )
 
 REM ─── Verificação Final ────────────────────────────────────
@@ -286,7 +286,7 @@ echo Verificacao final...
 venv\Scripts\python.exe -c "import yaml, numpy, pygame, edge_tts, ollama, rich, psutil" 2>nul
 if errorlevel 1 (
     echo ⚠  Alguns pacotes essenciais podem estar faltando.
-    echo    O Alfred tentara funcionar sem eles.
+    echo    A Luna tentara funcionar sem eles.
 ) else (
     echo ✅ Todos os pacotes essenciais verificados
 )
@@ -300,7 +300,7 @@ echo.
 echo   Para iniciar agora, execute:
 echo     start.bat
 echo.
-echo   Diga "Alfred" e faca sua primeira pergunta!
+echo   Diga "Luna" e faca sua primeira pergunta!
 echo.
 
 pause

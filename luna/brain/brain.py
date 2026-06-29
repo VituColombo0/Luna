@@ -15,7 +15,7 @@ from datetime import datetime
 import ollama
 
 
-# Ações que o Alfred pode executar no computador
+# Ações que a Luna pode executar no computador
 AVAILABLE_ACTIONS = [
     {
         "name": "open_file",
@@ -67,12 +67,62 @@ AVAILABLE_ACTIONS = [
         "description": "Listar processos em execução ou matar um processo pelo nome",
         "parameters": {"action": "list ou kill", "name": "nome do processo (para kill)"},
     },
+    {
+        "name": "take_screenshot",
+        "description": "Tirar uma captura de tela (screenshot) do computador",
+        "parameters": {"region": "Opcional: 'full' para tela inteira ou 'active' para janela ativa"},
+    },
+    {
+        "name": "clipboard",
+        "description": "Ler ou escrever na área de transferência (clipboard)",
+        "parameters": {"action": "read ou write", "text": "Texto para copiar (quando action=write)"},
+    },
+    {
+        "name": "control_brightness",
+        "description": "Controlar o brilho da tela (aumentar, diminuir ou definir valor)",
+        "parameters": {"action": "up, down ou um número de 0-100"},
+    },
+    {
+        "name": "system_power",
+        "description": "Desligar, reiniciar ou suspender o computador",
+        "parameters": {"action": "shutdown, restart, suspend, lock"},
+    },
+    {
+        "name": "manage_network",
+        "description": "Gerenciar rede — ver IP, status da conexão",
+        "parameters": {"action": "status, wifi_on, wifi_off, ip"},
+    },
+    {
+        "name": "type_text",
+        "description": "Digitar um texto no campo ativo (simula teclado)",
+        "parameters": {"text": "Texto a digitar", "press_enter": "true/false"},
+    },
+    {
+        "name": "hotkey",
+        "description": "Pressionar atalho de teclado. Ex: ctrl+c, alt+tab, ctrl+shift+t",
+        "parameters": {"keys": "Combinação separada por +"},
+    },
+    {
+        "name": "set_timer",
+        "description": "Configurar temporizador (a Luna avisa quando o tempo acabar)",
+        "parameters": {"seconds": "Tempo em segundos", "message": "Mensagem ao terminar"},
+    },
+    {
+        "name": "read_file_content",
+        "description": "Ler o conteúdo de um arquivo de texto",
+        "parameters": {"path": "Caminho do arquivo"},
+    },
+    {
+        "name": "write_file_content",
+        "description": "Escrever/criar um arquivo de texto",
+        "parameters": {"path": "Caminho do arquivo", "content": "Conteúdo a escrever"},
+    },
 ]
 
 
 class Brain:
     """
-    Cérebro do Alfred — gerencia a comunicação com o LLM local via Ollama.
+    Cérebro do Luna — gerencia a comunicação com o LLM local via Ollama.
     """
 
     def __init__(self, config: dict, logger: logging.Logger):
@@ -118,7 +168,7 @@ class Brain:
             f'  - "{a["name"]}": {a["description"]}' for a in AVAILABLE_ACTIONS
         )
 
-        prompt = f"""Você é o Alfred, um assistente pessoal de IA inteligente, prestativo e com personalidade.
+        prompt = f"""Você é a Luna, uma assistente pessoal de IA inteligente, prestativa e com personalidade.
 Você pertence exclusivamente ao {user_name} (pode chamá-lo de "{nickname}").
 
 SOBRE SEU DONO:
@@ -140,15 +190,17 @@ Ações disponíveis:
 {actions_desc}
 
 REGRAS:
-1. Seja natural, amigável e direto. Nada de respostas genéricas.
+1. Seja natural, amigável e direta. Nada de respostas genéricas.
 2. Fale em português do Brasil.
 3. Use as memórias para personalizar suas respostas — demonstre que lembra de coisas passadas.
 4. Quando executar uma ação, confirme o que vai fazer antes ou depois.
 5. Se não souber algo, diga honestamente.
 6. Mantenha respostas concisas — você está falando por voz, então respostas longas ficam cansativas.
-7. Seja PROATIVO: se o usuário pedir algo que envolva o computador (abrir app, pesquisar, volume, etc.), USE as ações disponíveis. Não diga "você pode fazer isso manualmente" — FAÇA você mesmo.
-8. Para abrir aplicativos, use a ação "open_application". Para executar qualquer comando no terminal, use "run_command". Para controlar o volume, use "control_volume".
-9. Você pode executar QUALQUER comando de terminal via run_command (ls, mkdir, cat, pip, apt, etc.). Use esse poder para ajudar seu dono.
+7. Seja PROATIVA: se o usuário pedir algo que envolva o computador (abrir app, pesquisar, volume, etc.), USE as ações disponíveis. Não diga "você pode fazer isso manualmente" — FAÇA você mesma.
+8. Para abrir aplicativos, use "open_application". Para terminal, use "run_command". Para volume, use "control_volume".
+9. Você pode executar QUALQUER comando via run_command. Use esse poder.
+10. Você tem controle TOTAL: teclado, mouse, screenshots, clipboard, brilho, rede, timers, e mais.
+11. Para timers, use "set_timer". Para atalhos, use "hotkey". Para clipboard, use "clipboard".
 """
         return prompt
 

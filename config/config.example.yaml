@@ -1,51 +1,48 @@
 # ============================================
-# Alfred — Configuração Pessoal
+# Luna — Configuração de Exemplo
 # ============================================
-# Copie este arquivo para config.yaml e edite.
+# Copie este arquivo para config.yaml e edite com suas informações.
 
-# --- Seu Perfil ---
 user:
   name: "Seu Nome"
-  nickname: "Como você quer ser chamado"
-  bio: "Estudante de engenharia, trabalha com dados climáticos..."
+  nickname: "Seu Apelido"
+  bio: "Descreva algo sobre você para a Luna te conhecer melhor."
 
-# --- Modelo de Linguagem ---
 llm:
-  model: "llama3.1"             # Modelo do Ollama (llama3.1, phi3, mistral...)
-  vision_model: "moondream"    # Modelo de visão (moondream, llava...)
+  model: "llama3.1"
+  vision_model: "moondream"
   temperature: 0.7
   ollama_host: "http://localhost:11434"
 
-# --- Voz ---
 voice:
-  stt_model: "base"            # Whisper model: tiny, base, small, medium
-  stt_language: "pt"           # Idioma principal
-  tts_engine: "edge-tts"       # edge-tts (online) ou piper (offline)
-  tts_voice: "pt-BR-AntonioNeural"  # Voz do edge-tts
-  wake_word: "alfred"          # Palavra de ativação
+  wake_word: "luna"
+  stt_model: "base"
+  stt_device: "cpu"
+  tts_voice: "pt-BR-ThalitaMultilingualNeural"
+  tts_rate: "+10%"
+  silence_threshold: 0.02
+  silence_duration: 1.5
+  max_record_seconds: 15
+  calibration_seconds: 1.5
 
-# --- Visão ---
 vision:
-  enabled: true
-  camera_index: 0              # Índice da câmera (0 = padrão)
-  face_recognition: true
-  faces_dir: "data/faces"      # Pasta com fotos do usuário
+  enabled: false
+  camera_index: 0
+  faces_dir: "data/faces"
 
-# --- Memória ---
 memory:
-  enabled: true
-  db_path: "data/memory"
-  max_context_items: 5         # Quantas memórias puxar por pergunta
-  auto_save: true              # Salvar conversas automaticamente
+  enabled: false
+  db_path: "data/luna_memory"
+  collection_name: "conversations"
 
-# --- Ações ---
 actions:
   enabled: true
-  allowed_paths:               # Pastas que o Alfred pode acessar
+  allow_browser: true
+  allow_system_commands: true
+  allowed_paths:
+    - "~"
     - "~/Documents"
     - "~/Downloads"
-    - "~/Videos"
-    - "~/Music"
     - "~/Desktop"
-  allow_browser: true
-  allow_system_commands: true  # Permite comandos shell (agora ativo por padrão)
+    - "~/Pictures"
+    - "/tmp"

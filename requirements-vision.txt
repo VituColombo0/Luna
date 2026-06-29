@@ -1,5 +1,5 @@
 # ============================================
-# Alfred — Módulo de Visão (Opcional)
+# Luna — Módulo de Visão (Opcional)
 # ============================================
 # Reconhecimento facial e análise de imagens.
 # Instalar com: pip install -r requirements-vision.txt

@@ -1,5 +1,5 @@
 """
-ActionExecutor — Executa ações no computador a pedido do Alfred.
+ActionExecutor — Executa ações no computador a pedido da Luna.
 
 Suporta:
 - Abrir arquivos e pastas
@@ -7,12 +7,19 @@ Suporta:
 - Pesquisar na web
 - Buscar arquivos locais
 - Obter informações do sistema
+- Screenshots e clipboard
+- Controle de teclado e mouse
+- Controle de brilho, rede e energia
+- Temporizadores
+- Leitura e escrita de arquivos
 """
 
 import logging
 import os
 import platform
 import subprocess
+import threading
+import time
 import webbrowser
 from pathlib import Path
 from urllib.parse import quote_plus
@@ -27,7 +34,7 @@ except ImportError:
 
 class ActionExecutor:
     """
-    Executor de ações do Alfred no sistema operacional.
+    Executor de ações da Luna no sistema operacional.
     """
 
     def __init__(self, config: dict, logger: logging.Logger):
@@ -76,6 +83,16 @@ class ActionExecutor:
             "open_application": self._open_application,
             "control_volume": self._control_volume,
             "list_processes": self._list_processes,
+            "take_screenshot": self._take_screenshot,
+            "clipboard": self._clipboard,
+            "control_brightness": self._control_brightness,
+            "system_power": self._system_power,
+            "manage_network": self._manage_network,
+            "type_text": self._type_text,
+            "hotkey": self._hotkey,
+            "set_timer": self._set_timer,
+            "read_file_content": self._read_file_content,
+            "write_file_content": self._write_file_content,
         }
 
         handler = handlers.get(action_name)
@@ -216,7 +233,7 @@ class ActionExecutor:
 
         from datetime import datetime
 
-        notes_dir = Path(os.path.expanduser("~/Documents/alfred_notes"))
+        notes_dir = Path(os.path.expanduser("~/Documents/luna_notes"))
         notes_dir.mkdir(parents=True, exist_ok=True)
 
         date_str = datetime.now().strftime("%Y-%m-%d")
@@ -453,6 +470,263 @@ class ActionExecutor:
                 return f"Nenhum processo encontrado com nome '{name}'."
 
         return f"Ação desconhecida: {action}"
+
+    # ─── Novas Ações ─────────────────────────────────────────────
+
+    def _take_screenshot(self, params: dict) -> str:
+        """Tira uma captura de tela."""
+        from datetime import datetime
+        region = params.get("region", "full")
+        screenshots_dir = Path(os.path.expanduser("~/Pictures/luna_screenshots"))
+        screenshots_dir.mkdir(parents=True, exist_ok=True)
+        filename = screenshots_dir / f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+
+        try:
+            if self.system == "Linux":
+                if region == "active":
+                    subprocess.run(["gnome-screenshot", "-w", "-f", str(filename)],
+                                   capture_output=True, timeout=10)
+                else:
+                    subprocess.run(["gnome-screenshot", "-f", str(filename)],
+                                   capture_output=True, timeout=10)
+            elif self.system == "Windows":
+                try:
+                    import pyautogui
+                    img = pyautogui.screenshot()
+                    img.save(str(filename))
+                except ImportError:
+                    subprocess.run(["powershell", "-c",
+                        f"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Screen]::PrimaryScreen"],
+                        capture_output=True)
+                    return "pyautogui não instalado para screenshots."
+            return f"Screenshot salva em: {filename}"
+        except Exception as e:
+            return f"Erro ao tirar screenshot: {e}"
+
+    def _clipboard(self, params: dict) -> str:
+        """Lê ou escreve na área de transferência."""
+        action = params.get("action", "read").lower()
+        try:
+            if action == "read":
+                if self.system == "Linux":
+                    result = subprocess.run(["xclip", "-selection", "clipboard", "-o"],
+                                           capture_output=True, text=True, timeout=5)
+                    return f"Conteúdo da clipboard: {result.stdout[:500]}" if result.stdout else "Clipboard vazia."
+                elif self.system == "Windows":
+                    result = subprocess.run(["powershell", "-c", "Get-Clipboard"],
+                                           capture_output=True, text=True, timeout=5)
+                    return f"Conteúdo da clipboard: {result.stdout[:500]}" if result.stdout else "Clipboard vazia."
+            elif action == "write":
+                text = params.get("text", "")
+                if not text:
+                    return "Texto não especificado."
+                if self.system == "Linux":
+                    process = subprocess.Popen(["xclip", "-selection", "clipboard"],
+                                              stdin=subprocess.PIPE)
+                    process.communicate(text.encode())
+                elif self.system == "Windows":
+                    subprocess.run(["powershell", "-c", f"Set-Clipboard -Value '{text}'"],
+                                   capture_output=True)
+                return f"Texto copiado para clipboard."
+            return f"Ação de clipboard desconhecida: {action}"
+        except Exception as e:
+            return f"Erro na clipboard: {e}"
+
+    def _control_brightness(self, params: dict) -> str:
+        """Controla o brilho da tela."""
+        action = params.get("action", "").lower()
+        if not action:
+            return "Ação de brilho não especificada."
+        try:
+            if self.system == "Linux":
+                if action == "up":
+                    subprocess.run(["xrandr", "--output", "eDP-1", "--brightness", "1.0"],
+                                   capture_output=True)
+                    return "Brilho aumentado."
+                elif action == "down":
+                    subprocess.run(["xrandr", "--output", "eDP-1", "--brightness", "0.5"],
+                                   capture_output=True)
+                    return "Brilho diminuído."
+                elif action.isdigit():
+                    level = min(int(action), 100) / 100.0
+                    subprocess.run(["xrandr", "--output", "eDP-1", "--brightness", str(level)],
+                                   capture_output=True)
+                    return f"Brilho ajustado para {int(level*100)}%."
+            return f"Controle de brilho não suportado em {self.system}."
+        except Exception as e:
+            return f"Erro ao controlar brilho: {e}"
+
+    def _system_power(self, params: dict) -> str:
+        """Controla energia do sistema."""
+        action = params.get("action", "").lower()
+        try:
+            if self.system == "Linux":
+                cmds = {
+                    "shutdown": ["systemctl", "poweroff"],
+                    "restart": ["systemctl", "reboot"],
+                    "suspend": ["systemctl", "suspend"],
+                    "lock": ["loginctl", "lock-session"],
+                }
+            elif self.system == "Windows":
+                cmds = {
+                    "shutdown": ["shutdown", "/s", "/t", "0"],
+                    "restart": ["shutdown", "/r", "/t", "0"],
+                    "suspend": ["rundll32.exe", "powrprof.dll,SetSuspendState"],
+                    "lock": ["rundll32.exe", "user32.dll,LockWorkStation"],
+                }
+            else:
+                return f"Não suportado em {self.system}."
+
+            cmd = cmds.get(action)
+            if cmd:
+                subprocess.Popen(cmd)
+                return f"Executando: {action}..."
+            return f"Ação de energia desconhecida: {action}"
+        except Exception as e:
+            return f"Erro: {e}"
+
+    def _manage_network(self, params: dict) -> str:
+        """Gerencia conexão de rede."""
+        action = params.get("action", "status").lower()
+        try:
+            if action == "ip":
+                import socket
+                hostname = socket.gethostname()
+                local_ip = socket.gethostbyname(hostname)
+                return f"Hostname: {hostname}\nIP local: {local_ip}"
+            elif action == "status":
+                if PSUTIL_AVAILABLE:
+                    nets = psutil.net_if_addrs()
+                    stats = psutil.net_if_stats()
+                    info_lines = []
+                    for iface, addrs in nets.items():
+                        is_up = stats[iface].isup if iface in stats else False
+                        for addr in addrs:
+                            if addr.family.name == 'AF_INET':
+                                info_lines.append(f"  {iface}: {addr.address} ({'UP' if is_up else 'DOWN'})")
+                    return "Interfaces de rede:\n" + "\n".join(info_lines) if info_lines else "Nenhuma interface encontrada."
+                return "psutil não disponível."
+            elif action == "wifi_on" and self.system == "Linux":
+                subprocess.run(["nmcli", "radio", "wifi", "on"], capture_output=True)
+                return "Wi-Fi ligado."
+            elif action == "wifi_off" and self.system == "Linux":
+                subprocess.run(["nmcli", "radio", "wifi", "off"], capture_output=True)
+                return "Wi-Fi desligado."
+            return f"Ação de rede desconhecida: {action}"
+        except Exception as e:
+            return f"Erro na rede: {e}"
+
+    def _type_text(self, params: dict) -> str:
+        """Digita texto simulando teclado."""
+        text = params.get("text", "")
+        if not text:
+            return "Texto não especificado."
+        try:
+            if self.system == "Linux":
+                subprocess.run(["xdotool", "type", "--delay", "20", text],
+                               capture_output=True, timeout=30)
+                if params.get("press_enter", "").lower() == "true":
+                    subprocess.run(["xdotool", "key", "Return"], capture_output=True)
+            elif self.system == "Windows":
+                try:
+                    import pyautogui
+                    pyautogui.typewrite(text, interval=0.02)
+                    if params.get("press_enter", "").lower() == "true":
+                        pyautogui.press("enter")
+                except ImportError:
+                    return "pyautogui não instalado."
+            return f"Texto digitado."
+        except Exception as e:
+            return f"Erro ao digitar: {e}"
+
+    def _hotkey(self, params: dict) -> str:
+        """Pressiona uma combinação de teclas."""
+        keys = params.get("keys", "")
+        if not keys:
+            return "Teclas não especificadas."
+        try:
+            key_list = [k.strip().lower() for k in keys.split("+")]
+            if self.system == "Linux":
+                xdotool_keys = "+".join(key_list)
+                subprocess.run(["xdotool", "key", xdotool_keys], capture_output=True)
+            elif self.system == "Windows":
+                try:
+                    import pyautogui
+                    pyautogui.hotkey(*key_list)
+                except ImportError:
+                    return "pyautogui não instalado."
+            return f"Atalho {keys} pressionado."
+        except Exception as e:
+            return f"Erro no atalho: {e}"
+
+    def _set_timer(self, params: dict) -> str:
+        """Configura um temporizador."""
+        try:
+            seconds = int(params.get("seconds", 0))
+        except (ValueError, TypeError):
+            return "Tempo inválido."
+        if seconds <= 0:
+            return "Tempo deve ser maior que zero."
+
+        message = params.get("message", "Timer finalizado!")
+
+        def _timer_callback():
+            time.sleep(seconds)
+            # Notificar via sistema
+            if self.system == "Linux":
+                subprocess.run(["notify-send", "Luna Timer", message], capture_output=True)
+                # Também tocar um som
+                subprocess.run(["paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga"],
+                               capture_output=True)
+            elif self.system == "Windows":
+                try:
+                    import ctypes
+                    ctypes.windll.user32.MessageBoxW(0, message, "Luna Timer", 0x40)
+                except Exception:
+                    pass
+
+        thread = threading.Thread(target=_timer_callback, daemon=True)
+        thread.start()
+
+        mins = seconds // 60
+        secs = seconds % 60
+        time_str = f"{mins}min {secs}s" if mins > 0 else f"{secs}s"
+        return f"Timer configurado para {time_str}. Vou te avisar!"
+
+    def _read_file_content(self, params: dict) -> str:
+        """Lê o conteúdo de um arquivo de texto."""
+        path = params.get("path", "")
+        if not path:
+            return "Caminho não especificado."
+        path = os.path.expanduser(os.path.expandvars(path))
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read(2000)  # Limitar a 2000 chars
+            truncated = " (truncado)" if len(content) >= 2000 else ""
+            return f"Conteúdo de {path}{truncated}:\n{content}"
+        except FileNotFoundError:
+            return f"Arquivo não encontrado: {path}"
+        except Exception as e:
+            return f"Erro ao ler arquivo: {e}"
+
+    def _write_file_content(self, params: dict) -> str:
+        """Escreve conteúdo em um arquivo de texto."""
+        path = params.get("path", "")
+        content = params.get("content", "")
+        if not path:
+            return "Caminho não especificado."
+        if not content:
+            return "Conteúdo não especificado."
+        path = os.path.expanduser(os.path.expandvars(path))
+        try:
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+            return f"Arquivo salvo em: {path}"
+        except Exception as e:
+            return f"Erro ao escrever arquivo: {e}"
+
+    # ─── Utilidades Internas ─────────────────────────────────────
 
     def _is_path_allowed(self, path: str) -> bool:
         """Verifica se um caminho está dentro dos diretórios permitidos."""

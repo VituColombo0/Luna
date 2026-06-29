@@ -30,7 +30,7 @@ except ImportError:
 
 class Speaker:
     """
-    Voz do Alfred — converte texto em fala.
+    Voz do Luna — converte texto em fala.
     """
 
     def __init__(self, config: dict, logger: logging.Logger):

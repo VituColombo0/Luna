@@ -1,5 +1,5 @@
 """
-Logger do Alfred com saída colorida via Rich.
+Logger da Luna com saída colorida via Rich.
 """
 
 import logging
@@ -11,7 +11,7 @@ console = Console()
 
 def setup_logger(level: int = logging.INFO) -> logging.Logger:
     """
-    Configura e retorna o logger principal do Alfred.
+    Configura e retorna o logger principal da Luna.
 
     Args:
         level: Nível de logging (default: INFO).
@@ -19,7 +19,7 @@ def setup_logger(level: int = logging.INFO) -> logging.Logger:
     Returns:
         Logger configurado com RichHandler.
     """
-    logger = logging.getLogger("alfred")
+    logger = logging.getLogger("luna")
     logger.setLevel(level)
 
     # Evitar handlers duplicados se chamado mais de uma vez

@@ -1,13 +1,13 @@
 """
-Orchestrator — O coração do Alfred.
+Orchestrator — O coração da Luna.
 
 Gerencia o loop principal e a comunicação entre todos os módulos:
 Brain (LLM), Voice (STT/TTS), Vision (câmera), Memory (ChromaDB),
 Actions (OS), Display (animações visuais).
 
 Modo Alexa:
-- Alfred fica ouvindo em background (wake word detection)
-- Quando detecta "Alfred", emite um beep e ativa escuta
+- Luna fica ouvindo em background (wake word detection)
+- Quando detecta "Luna", emite um beep e ativa escuta
 - Grava o comando, processa, responde e volta pro idle
 """
 
@@ -16,21 +16,21 @@ import time
 
 from rich.panel import Panel
 
-from alfred.brain.brain import Brain
-from alfred.voice.listener import Listener
-from alfred.voice.speaker import Speaker
-from alfred.voice.wake_word import WakeWordDetector
-from alfred.voice.sounds import SoundPlayer
-from alfred.memory.memory_manager import MemoryManager
-from alfred.actions.action_executor import ActionExecutor
-from alfred.vision.vision_module import VisionModule
-from alfred.ui.display import Display, State
-from alfred.utils.logger import console
+from luna.brain.brain import Brain
+from luna.voice.listener import Listener
+from luna.voice.speaker import Speaker
+from luna.voice.wake_word import WakeWordDetector
+from luna.voice.sounds import SoundPlayer
+from luna.memory.memory_manager import MemoryManager
+from luna.actions.action_executor import ActionExecutor
+from luna.vision.vision_module import VisionModule
+from luna.ui.display import Display, State
+from luna.utils.logger import console
 
 
 class Orchestrator:
     """
-    Orquestrador principal que roda o loop de vida do Alfred.
+    Orquestrador principal que roda o loop de vida da Luna.
 
     Suporta dois modos de operação:
     - voice (padrão): Wake word detection contínuo estilo Alexa
@@ -74,13 +74,13 @@ class Orchestrator:
 
     def run(self):
         """
-        Loop principal do Alfred.
+        Loop principal da Luna.
 
         Fluxo (modo Alexa):
         1. Sequência de boot animada
         2. Verificar conexão com Ollama
         3. Iniciar wake word detection em background
-        4. Quando detectar "Alfred":
+        4. Quando detectar "Luna":
            a. Beep de confirmação
            b. Gravar comando (Listener)
            c. Buscar memórias relevantes
@@ -110,7 +110,7 @@ class Orchestrator:
 
         self.running = True
         user_name = self.config.get("user", {}).get("nickname", "Usuário")
-        wake_word = self.config.get("voice", {}).get("wake_word", "alfred")
+        wake_word = self.config.get("voice", {}).get("wake_word", "luna")
 
         # Determinar modo de operação
         voice_available = self.wake_word.is_available and self.listener.is_available
@@ -133,7 +133,7 @@ class Orchestrator:
         """
         Modo Alexa — Wake word detection + voz.
 
-        O Alfred fica ouvindo em background e responde quando chamado.
+        A Luna fica ouvindo em background e responde quando chamado.
         Mantém também o input por texto ativo para comandos especiais.
         """
         console.print(
@@ -143,11 +143,11 @@ class Orchestrator:
                 f'   Diga "[bold]{wake_word}[/]" seguido do seu comando\n'
                 f"   Exemplo: \"{wake_word}, que horas são?\"\n\n"
                 f"⌨️  Comandos de texto (terminal):\n"
-                f"  [dim]/sair[/]   — Desligar o Alfred\n"
+                f"  [dim]/sair[/]   — Desligar a Luna\n"
                 f"  [dim]/limpar[/] — Limpar histórico de conversa\n"
                 f"  [dim]/texto[/]  — Mudar para modo texto\n"
                 f"  [dim]/status[/] — Ver status dos módulos",
-                title="✅ Alfred Pronto",
+                title="✅ Luna Pronta",
                 border_style="green",
             )
         )
@@ -253,7 +253,7 @@ class Orchestrator:
                 self.display.stop()
 
                 if not user_input or not user_input.strip():
-                    # Apenas disse "Alfred" sem comando
+                    # Apenas disse "Luna" sem comando
                     self.sounds.play("deactivation")
                     console.print("[dim]Nenhum comando detectado.[/]")
                     self.wake_word.resume()
@@ -285,11 +285,11 @@ class Orchestrator:
                 f"[bold green]Todos os sistemas online![/]\n\n"
                 f"⌨️  Modo: [bold cyan]Texto[/]\n"
                 f"Comandos especiais:\n"
-                f"  [dim]/sair[/]   — Desligar o Alfred\n"
+                f"  [dim]/sair[/]   — Desligar a Luna\n"
                 f"  [dim]/limpar[/] — Limpar histórico de conversa\n"
                 f"  [dim]/voz[/]    — Mudar para modo voz\n"
                 f"  [dim]/status[/] — Ver status dos módulos",
-                title="✅ Alfred Pronto",
+                title="✅ Luna Pronta",
                 border_style="green",
             )
         )
@@ -415,7 +415,7 @@ class Orchestrator:
         Args:
             text: Texto para falar e exibir.
         """
-        console.print(f"\n[bold blue]Alfred:[/] {text}")
+        console.print(f"\n[bold magenta]Luna:[/] {text}")
 
         # Pausar wake word durante fala (evitar auto-ativação)
         if hasattr(self, 'wake_word') and self.wake_word.is_available:
@@ -523,8 +523,8 @@ class Orchestrator:
         console.print(table)
 
     def shutdown(self):
-        """Desliga o Alfred de forma limpa."""
+        """Desliga a Luna de forma limpa."""
         self.running = False
         self.wake_word.stop()
         self.display.stop()
-        self.logger.info("Alfred desligado.")
+        self.logger.info("Luna desligada.")

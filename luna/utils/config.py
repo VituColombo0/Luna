@@ -1,5 +1,5 @@
 """
-Carregamento de configuração do Alfred.
+Carregamento de configuração da Luna.
 Lê o arquivo YAML e disponibiliza como dicionário.
 """
 
@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 def load_config(config_path: str | None = None) -> dict:
     """
-    Carrega a configuração do Alfred a partir de um arquivo YAML.
+    Carrega a configuração da Luna a partir de um arquivo YAML.
 
     Args:
         config_path: Caminho para o arquivo de configuração.

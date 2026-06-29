@@ -1,52 +1,54 @@
 @echo off
 REM ============================================
-REM Alfred — Script de inicializacao (Windows)
+REM Luna — Script de Inicialização (Windows)
 REM ============================================
-REM Duplo clique neste arquivo para iniciar o Alfred.
 
-set SCRIPT_DIR=%~dp0
-set VENV_DIR=%SCRIPT_DIR%venv
-set LOG_FILE=%SCRIPT_DIR%data\alfred.log
+cd /d "%~dp0"
 
-REM Criar pasta de dados se nao existir
-if not exist "%SCRIPT_DIR%data" mkdir "%SCRIPT_DIR%data"
-if not exist "%SCRIPT_DIR%data\faces" mkdir "%SCRIPT_DIR%data\faces"
-if not exist "%SCRIPT_DIR%data\memory" mkdir "%SCRIPT_DIR%data\memory"
+echo.
+echo 🌙 Luna — Assistente Pessoal de IA
+echo ====================================
 
-REM Ativar virtualenv
-if exist "%VENV_DIR%\Scripts\activate.bat" (
-    call "%VENV_DIR%\Scripts\activate.bat"
-) else (
-    echo Erro: virtualenv nao encontrado em %VENV_DIR%
-    echo Execute o instalador primeiro: install.bat
+REM Verificar Python
+where python >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ❌ Python não encontrado. Execute install.bat primeiro.
     pause
     exit /b 1
 )
 
-REM Verificar se o Ollama esta rodando
-tasklist /fi "imagename eq ollama.exe" | find /i "ollama.exe" >nul 2>&1
-if errorlevel 1 (
-    echo Iniciando Ollama em background...
-    start /min "" ollama serve
-    timeout /t 5 /nobreak >nul
+REM Ativar venv se existir
+if exist "venv\Scripts\activate.bat" (
+    call venv\Scripts\activate.bat
+    echo ✅ Ambiente virtual ativado
+) else (
+    echo ⚠️  Ambiente virtual não encontrado.
 )
 
-REM Aguardar Ollama ficar disponivel
-set OLLAMA_READY=0
-for /L %%i in (1,1,5) do (
-    if !OLLAMA_READY!==0 (
-        curl -s http://localhost:11434/api/tags >nul 2>&1
-        if not errorlevel 1 (
-            set OLLAMA_READY=1
-        ) else (
-            echo Aguardando Ollama iniciar... (tentativa %%i/5)
-            timeout /t 3 /nobreak >nul
-        )
-    )
+REM Verificar Ollama
+where ollama >nul 2>&1
+if %errorlevel% equ 0 (
+    echo ✅ Ollama encontrado
+) else (
+    echo ⚠️  Ollama não encontrado. Instale em: https://ollama.com
 )
 
-REM Iniciar o Alfred
-echo [%date% %time%] Iniciando Alfred... >> "%LOG_FILE%"
-cd /d "%SCRIPT_DIR%"
-python -m alfred
-pause
+REM Modo headless (sem janela do terminal)
+if "%1"=="--headless" (
+    echo 🔇 Iniciando em modo headless...
+    start /B pythonw -m luna --headless
+    echo    Luna iniciada em background.
+    timeout /t 3
+    exit /b 0
+)
+
+echo.
+echo 🚀 Iniciando Luna...
+echo.
+python -m luna %*
+
+if %errorlevel% neq 0 (
+    echo.
+    echo ❌ Erro ao iniciar Luna.
+    pause
+)
