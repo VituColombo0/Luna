@@ -21,6 +21,7 @@ from luna.voice.listener import Listener
 from luna.voice.speaker import Speaker
 from luna.voice.wake_word import WakeWordDetector
 from luna.voice.sounds import SoundPlayer
+from luna.voice.calibration import VoiceCalibrator
 from luna.memory.memory_manager import MemoryManager
 from luna.actions.action_executor import ActionExecutor
 from luna.vision.vision_module import VisionModule
@@ -58,7 +59,10 @@ class Orchestrator:
         self.speaker = Speaker(config, logger)
 
         self.logger.info("Inicializando [bold]Wake Word Detector[/]...")
-        self.wake_word = WakeWordDetector(config, logger)
+        # Carregar perfil de voz se existir
+        self.calibrator = VoiceCalibrator(logger)
+        self._voice_profile = self.calibrator.load_profile()
+        self.wake_word = WakeWordDetector(config, logger, voice_profile=self._voice_profile)
 
         self.logger.info("Inicializando [bold]Sound Player[/]...")
         self.sounds = SoundPlayer()
@@ -112,6 +116,14 @@ class Orchestrator:
         user_name = self.config.get("user", {}).get("nickname", "Usuário")
         wake_word = self.config.get("voice", {}).get("wake_word", "luna")
 
+        # --- Calibração de voz no primeiro uso ---
+        if self.calibrator.needs_calibration():
+            voice_available_for_cal = (
+                self.wake_word.is_available or self.listener.is_available
+            )
+            if voice_available_for_cal:
+                self._run_calibration(wake_word)
+
         # Determinar modo de operação
         voice_available = self.wake_word.is_available and self.listener.is_available
 
@@ -146,7 +158,8 @@ class Orchestrator:
                 f"  [dim]/sair[/]   — Desligar a Luna\n"
                 f"  [dim]/limpar[/] — Limpar histórico de conversa\n"
                 f"  [dim]/texto[/]  — Mudar para modo texto\n"
-                f"  [dim]/status[/] — Ver status dos módulos",
+                f"  [dim]/status[/] — Ver status dos módulos\n"
+                f"  [dim]/calibrar[/] — Recalibrar voz",
                 title="✅ Luna Pronta",
                 border_style="green",
             )
@@ -193,6 +206,11 @@ class Orchestrator:
                     return
                 elif user_input.lower() == "/status":
                     self._show_status()
+                    continue
+                elif user_input.lower() == "/calibrar":
+                    self._run_calibration(
+                        self.config.get("voice", {}).get("wake_word", "luna")
+                    )
                     continue
                 else:
                     # Processar como comando de texto
@@ -521,6 +539,35 @@ class Orchestrator:
         )
 
         console.print(table)
+
+    def _run_calibration(self, wake_word: str):
+        """
+        Executa a calibração de voz interativa.
+
+        Pausa o wake word detector se estiver rodando,
+        roda a calibração, e reinicializa o detector com
+        o novo perfil.
+        """
+        # Pausar wake word durante calibração
+        was_running = self.wake_word._running
+        if was_running:
+            self.wake_word.stop()
+
+        # Deletar perfil antigo se existir (para recalibração)
+        self.calibrator.delete_profile()
+
+        # Rodar calibração interativa
+        profile = self.calibrator.run_calibration(wake_word, console=console)
+
+        if profile:
+            # Reinicializar o WakeWordDetector com o novo perfil
+            self._voice_profile = profile
+            self.wake_word = WakeWordDetector(
+                self.config, self.logger, voice_profile=profile
+            )
+            self.logger.info(
+                f"Wake word recalibrado — threshold: [cyan]{profile.get('optimal_threshold')}[/]"
+            )
 
     def shutdown(self):
         """Desliga a Luna de forma limpa."""

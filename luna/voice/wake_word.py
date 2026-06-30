@@ -49,17 +49,29 @@ class WakeWordDetector:
     DTYPE = "int16"
 
     # Detecção de atividade de voz
-    ENERGY_THRESHOLD = 80            # Limiar de energia para considerar fala (baixo para captar mais)
+    ENERGY_THRESHOLD = 50            # Limiar de energia para considerar fala (baixo para captar mais)
     CHUNK_DURATION = 2.5             # Duração do chunk em segundos
     SILENCE_SKIP_DURATION = 0.3      # Duração para checar silêncio antes de gravar
 
-    def __init__(self, config: dict, logger: logging.Logger):
+    def __init__(self, config: dict, logger: logging.Logger, voice_profile: dict | None = None):
         self.config = config.get("voice", {})
         self.logger = logger
+        self._voice_profile = voice_profile
 
         self.wake_word = self.config.get("wake_word", "luna").lower()
         # Variações comuns do wake word (erros de transcrição do Whisper)
         self.wake_word_variants = self._build_variants(self.wake_word)
+
+        # Incorporar variantes descobertas durante a calibração
+        if voice_profile and voice_profile.get("confirmed_variants"):
+            for variant in voice_profile["confirmed_variants"]:
+                v_lower = variant.lower().strip()
+                if v_lower and v_lower not in self.wake_word_variants:
+                    self.wake_word_variants.append(v_lower)
+            self.logger.info(
+                f"Perfil de voz carregado — {len(voice_profile['confirmed_variants'])} "
+                f"variantes confirmadas adicionadas."
+            )
 
         self._running = False
         self._thread: threading.Thread | None = None
@@ -84,8 +96,13 @@ class WakeWordDetector:
                 "faster-whisper não disponível — wake word desativado."
             )
 
-        # Auto-calibrar nível de ruído ambiente
-        if SOUNDDEVICE_AVAILABLE:
+        # Usar threshold do perfil de voz se disponível, senão auto-calibrar
+        if voice_profile and voice_profile.get("optimal_threshold"):
+            self.ENERGY_THRESHOLD = voice_profile["optimal_threshold"]
+            self.logger.info(
+                f"Threshold do perfil de voz: [cyan]{self.ENERGY_THRESHOLD}[/]"
+            )
+        elif SOUNDDEVICE_AVAILABLE:
             self._calibrate_noise_floor()
 
     def _calibrate_noise_floor(self):
@@ -107,7 +124,7 @@ class WakeWordDetector:
             noise_level = np.abs(noise_sample).mean()
 
             # Threshold = ruído ambiente + margem de 50%
-            calibrated = max(int(noise_level * 1.5), 30)  # mínimo de 30
+            calibrated = max(int(noise_level * 1.3), 25)  # mínimo de 25
             self.ENERGY_THRESHOLD = calibrated
             self.logger.info(
                 f"Ruído ambiente: [cyan]{noise_level:.0f}[/] → "

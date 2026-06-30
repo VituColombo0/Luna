@@ -21,7 +21,10 @@ fi
 # Verificar ambiente virtual
 if [ -d "venv" ]; then
     source venv/bin/activate
-    echo "✅ Ambiente virtual ativado"
+    echo "✅ Ambiente virtual ativado (venv)"
+elif [ -d ".env" ]; then
+    source .env/bin/activate
+    echo "✅ Ambiente virtual ativado (.env)"
 else
     echo "⚠️  Ambiente virtual não encontrado. Usando Python global."
 fi
