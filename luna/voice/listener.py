@@ -49,6 +49,7 @@ class Listener:
 
         self.model_size = self.config.get("stt_model", "base")
         self.language = self.config.get("stt_language", "pt")
+        self.silence_duration = float(self.config.get("silence_duration", 1.5))
 
         self.whisper_model = None
 
@@ -84,13 +85,15 @@ class Listener:
                 dtype=self.DTYPE,
             )
             sd.wait()
-            noise_level = np.abs(noise).mean()
+            
+            chunk_float = noise.astype(np.float32) / 32768.0
+            rms_energy = np.sqrt(np.mean(chunk_float**2)) * 10000
 
-            # Threshold = ruído + margem de 80% (precisa de mais margem para fala contínua)
-            calibrated = max(int(noise_level * 1.8), 50)
+            # Threshold = ruído + margem de 80%
+            calibrated = max(int(rms_energy * 1.8), 50)
             self.SILENCE_THRESHOLD = calibrated
             self.logger.info(
-                f"Microfone calibrado — ruído: [cyan]{noise_level:.0f}[/], "
+                f"Microfone calibrado (RMS) — ruído: [cyan]{rms_energy:.0f}[/], "
                 f"threshold: [cyan]{calibrated}[/]"
             )
         except Exception as e:
@@ -174,44 +177,66 @@ class Listener:
 
     def _record_until_silence(self) -> np.ndarray | None:
         """
-        Grava áudio do microfone até detectar silêncio prolongado.
+        Grava áudio do microfone continuamente via InputStream até detectar silêncio prolongado.
 
         Returns:
             Array numpy com os dados de áudio ou None.
         """
+        import queue
         frames = []
         silent_frames = 0
         frames_per_check = int(self.SAMPLE_RATE * 0.1)  # Checar a cada 100ms
         max_frames = int(self.MAX_DURATION * self.SAMPLE_RATE / frames_per_check)
-        silence_limit = int(self.SILENCE_DURATION / 0.1)
+        silence_limit = int(self.silence_duration / 0.1)
 
         has_speech = False
+        q = queue.Queue()
 
-        for _ in range(max_frames):
-            chunk = sd.rec(
-                frames_per_check,
+        def audio_callback(indata, frames, time_info, status):
+            if status:
+                self.logger.debug(f"Listener stream status: {status}")
+            q.put(indata.copy())
+
+        try:
+            with sd.InputStream(
                 samplerate=self.SAMPLE_RATE,
                 channels=self.CHANNELS,
                 dtype=self.DTYPE,
-            )
-            sd.wait()
-
-            amplitude = np.abs(chunk).mean()
-
-            if amplitude > self.SILENCE_THRESHOLD:
-                has_speech = True
-                silent_frames = 0
-                frames.append(chunk)
-            else:
-                if has_speech:
-                    silent_frames += 1
-                    frames.append(chunk)
-
-                    if silent_frames >= silence_limit:
+                blocksize=frames_per_check,
+                callback=audio_callback
+            ):
+                for _ in range(max_frames):
+                    try:
+                        chunk = q.get(timeout=1.0)
+                    except queue.Empty:
                         break
+
+                    chunk_float = chunk.astype(np.float32) / 32768.0
+                    amplitude = np.sqrt(np.mean(chunk_float**2)) * 10000
+
+                    if amplitude > self.SILENCE_THRESHOLD:
+                        has_speech = True
+                        silent_frames = 0
+                        frames.append(chunk)
+                    else:
+                        if has_speech:
+                            silent_frames += 1
+                            frames.append(chunk)
+
+                            if silent_frames >= silence_limit:
+                                break
+                        # Se ainda não detectou fala, descarta o áudio (evita enviar silêncio gigante ao Whisper)
+
+        except Exception as e:
+            self.logger.error(f"Erro ao capturar áudio no Listener: {e}")
+            return None
 
         if not has_speech:
             return None
+
+        # Trimming: remover os frames de silêncio finais que engatilharam a parada
+        if len(frames) > silence_limit:
+            frames = frames[:-silence_limit]
 
         return np.concatenate(frames)
 

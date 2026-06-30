@@ -121,13 +121,16 @@ class WakeWordDetector:
                 dtype=self.DTYPE,
             )
             sd.wait()
-            noise_level = np.abs(noise_sample).mean()
+            
+            # Cálculo de energia RMS
+            chunk_float = noise_sample.astype(np.float32) / 32768.0
+            rms_energy = np.sqrt(np.mean(chunk_float**2)) * 10000
 
-            # Threshold = ruído ambiente + margem de 50%
-            calibrated = max(int(noise_level * 1.3), 25)  # mínimo de 25
+            # Threshold = ruído ambiente + margem de 30%
+            calibrated = max(int(rms_energy * 1.3), 25)  # mínimo de 25
             self.ENERGY_THRESHOLD = calibrated
             self.logger.info(
-                f"Ruído ambiente: [cyan]{noise_level:.0f}[/] → "
+                f"Ruído ambiente (RMS): [cyan]{rms_energy:.0f}[/] → "
                 f"threshold calibrado: [cyan]{calibrated}[/]"
             )
         except Exception as e:
@@ -251,71 +254,87 @@ class WakeWordDetector:
 
     def _detection_loop(self):
         """
-        Loop principal de detecção em background.
-
-        1. Captura chunks curtos de áudio
-        2. Verifica se há atividade de voz (energia acima do limiar)
-        3. Se sim, transcreve e procura a wake word
-        4. Se encontrou, chama o callback
+        Loop principal de detecção em background usando InputStream contínuo.
         """
         import tempfile
         import wave
         from pathlib import Path
 
         chunk_samples = int(self.SAMPLE_RATE * self.CHUNK_DURATION)
-        check_samples = int(self.SAMPLE_RATE * self.SILENCE_SKIP_DURATION)
+        
+        # Buffer circular para armazenar os pacotes contínuos
+        buffer = np.zeros((0, self.CHANNELS), dtype=self.DTYPE)
+        
+        def audio_callback(indata, frames, time_info, status):
+            nonlocal buffer
+            if status:
+                self.logger.debug(f"Status do stream WakeWord: {status}")
+            
+            with self._lock:
+                if self._paused:
+                    return
+            
+            buffer = np.concatenate((buffer, indata))
 
-        while self._running:
-            try:
-                # Verificar se está pausado
-                with self._lock:
-                    is_paused = self._paused
-                
-                if is_paused:
-                    time.sleep(0.1)
-                    continue
+        try:
+            stream = sd.InputStream(
+                samplerate=self.SAMPLE_RATE,
+                channels=self.CHANNELS,
+                dtype=self.DTYPE,
+                callback=audio_callback,
+                blocksize=int(self.SAMPLE_RATE * 0.5) # Blocos de 0.5s
+            )
+            
+            with stream:
+                while self._running:
+                    try:
+                        # Verificar se está pausado
+                        with self._lock:
+                            is_paused = self._paused
+                        
+                        if is_paused:
+                            # Limpa o buffer se estiver pausado
+                            buffer = np.zeros((0, self.CHANNELS), dtype=self.DTYPE)
+                            time.sleep(0.1)
+                            continue
 
-                # Primeiro: checar rapidamente se há som
-                quick_check = sd.rec(
-                    check_samples,
-                    samplerate=self.SAMPLE_RATE,
-                    channels=self.CHANNELS,
-                    dtype=self.DTYPE,
-                )
-                sd.wait()
+                        # Processa apenas se tiver acumulado áudio suficiente
+                        if len(buffer) >= chunk_samples:
+                            chunk_to_process = buffer[:chunk_samples]
+                            # Remove os dados processados (sliding window)
+                            buffer = buffer[int(self.SAMPLE_RATE * 0.5):]
+                            
+                            # Cálculo de energia RMS
+                            chunk_float = chunk_to_process.astype(np.float32) / 32768.0
+                            rms_energy = np.sqrt(np.mean(chunk_float**2)) * 10000
+                            
+                            if rms_energy < self.ENERGY_THRESHOLD:
+                                # Silêncio
+                                continue
 
-                energy = np.abs(quick_check).mean()
+                            # Tem som! Transcrever com Whisper
+                            text = self._transcribe_chunk(chunk_to_process)
 
-                if energy < self.ENERGY_THRESHOLD:
-                    # Silêncio — pular, não gastar CPU transcrevendo
-                    time.sleep(0.05)
-                    continue
+                            if text and self._contains_wake_word(text):
+                                self.logger.info(
+                                    f'Wake word detectada: "[bold green]{text}[/]"'
+                                )
+                                if self._callback:
+                                    # Extrair o comando após a wake word
+                                    command = self._extract_command(text)
+                                    self._callback(command)
+                                    # Limpa buffer para não repetir a mesma fala
+                                    buffer = np.zeros((0, self.CHANNELS), dtype=self.DTYPE)
+                        else:
+                            # Aguarda encher o buffer
+                            time.sleep(0.1)
 
-                # Tem som! Gravar chunk completo
-                chunk = sd.rec(
-                    chunk_samples,
-                    samplerate=self.SAMPLE_RATE,
-                    channels=self.CHANNELS,
-                    dtype=self.DTYPE,
-                )
-                sd.wait()
-
-                # Transcrever com Whisper
-                text = self._transcribe_chunk(chunk)
-
-                if text and self._contains_wake_word(text):
-                    self.logger.info(
-                        f'Wake word detectada: "[bold green]{text}[/]"'
-                    )
-                    if self._callback:
-                        # Extrair o comando após a wake word (se houver)
-                        command = self._extract_command(text)
-                        self._callback(command)
-
-            except Exception as e:
-                if self._running:
-                    self.logger.debug(f"Erro no wake word loop: {e}")
-                    time.sleep(0.5)
+                    except Exception as e:
+                        if self._running:
+                            self.logger.debug(f"Erro interno no wake word loop: {e}")
+                            time.sleep(0.5)
+        except Exception as e:
+            self.logger.error(f"Erro ao iniciar o stream do Wake Word: {e}")
 
     def _transcribe_chunk(self, audio: np.ndarray) -> str | None:
         """
