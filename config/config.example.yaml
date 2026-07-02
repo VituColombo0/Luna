@@ -9,9 +9,10 @@ user:
   bio: "Descreva algo sobre você para a Luna te conhecer melhor."
 
 llm:
-  model: "llama3.1"
+  model: "gemma3:4b"
   vision_model: "moondream"
   temperature: 0.7
+  max_tokens: 256
   ollama_host: "http://localhost:11434"
 
 voice:
@@ -19,8 +20,9 @@ voice:
   stt_model: "base"
   stt_language: "pt"
   stt_device: "cpu"
+  tts_engine: "edge-tts"
   tts_voice: "pt-BR-ThalitaMultilingualNeural"
-  tts_rate: "+10%"
+  tts_rate: "+15%"
   silence_threshold: 0.02
   silence_duration: 1.5
   max_record_seconds: 15

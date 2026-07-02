@@ -8,12 +8,15 @@ Ela ouve, entende, fala e executa ações no seu PC — tudo sem depender da nuv
 ## ✨ Funcionalidades
 
 ### 🎤 Interação por Voz
-- **Wake word**: Diga "Luna" para ativar
-- **Speech-to-Text**: Transcrição local via Faster-Whisper
-- **Text-to-Speech**: Voz natural em PT-BR via Edge-TTS
+- **Wake word**: Diga "Luna" para ativar (estilo Alexa)
+- **Speech-to-Text**: Transcrição local via Faster-Whisper com InputStream contínuo
+- **Text-to-Speech**: Voz natural em PT-BR via Edge-TTS com **cache de áudio**
+- **Calibração adaptativa**: Calibra o microfone na primeira execução
+- **Detecção RMS**: Imune a ruídos, detecta fala real
 
 ### 🧠 Inteligência
-- **LLM local**: Integração com Ollama (Llama 3.1, Phi-3, etc.)
+- **LLM local**: Integração com Ollama (Gemma 3 4B, Llama 3.1, etc.)
+- **Respostas rápidas**: Otimizado para respostas curtas por voz (2-3 frases)
 - **Memória de longo prazo**: ChromaDB com busca semântica
 - **Contexto personalizado**: Luna conhece e lembra de você
 
@@ -31,6 +34,12 @@ Ela ouve, entende, fala e executa ações no seu PC — tudo sem depender da nuv
 - **Energia**: Desligar, reiniciar, suspender, bloquear
 - **Timer**: Temporizadores com notificação
 - **Processos**: Listar e encerrar processos
+
+### 🔑 Atalhos de Teclado Globais
+| Atalho | Ação |
+|--------|------|
+| `Ctrl+Shift+L` | Abrir/fechar terminal da Luna |
+| `Ctrl+Shift+Q` | Encerrar a Luna |
 
 ### 👁️ Visão (Opcional)
 - Reconhecimento facial
@@ -86,22 +95,24 @@ luna/
 ├── __init__.py          # Package metadata
 ├── __main__.py          # Ponto de entrada
 ├── core/
-│   └── orchestrator.py  # Orquestrador principal
+│   ├── orchestrator.py  # Orquestrador principal
+│   └── hotkeys.py       # Atalhos de teclado globais
 ├── brain/
 │   └── brain.py         # Integração LLM (Ollama)
 ├── voice/
-│   ├── listener.py      # Speech-to-Text
-│   ├── speaker.py       # Text-to-Speech
-│   ├── wake_word.py     # Detecção de wake word
-│   └── sounds.py        # Efeitos sonoros
+│   ├── listener.py      # Speech-to-Text (InputStream contínuo)
+│   ├── speaker.py       # Text-to-Speech (com cache)
+│   ├── wake_word.py     # Detecção de wake word (RMS)
+│   ├── calibration.py   # Calibração de voz adaptativa
+│   └── sounds.py        # Efeitos sonoros programáticos
 ├── actions/
-│   └── action_executor.py  # Controle do computador
+│   └── action_executor.py  # Controle do computador (20+ ações)
 ├── memory/
-│   └── memory_manager.py   # Memória de longo prazo
+│   └── memory_manager.py   # Memória de longo prazo (ChromaDB)
 ├── vision/
 │   └── vision_module.py    # Reconhecimento facial
 ├── ui/
-│   └── display.py       # Interface visual
+│   └── display.py       # Interface visual animada
 └── utils/
     ├── config.py        # Carregamento de config
     └── logger.py        # Logger com Rich
@@ -119,11 +130,13 @@ user:
   nickname: "Seu Apelido"
 
 llm:
-  model: "llama3.1"
+  model: "gemma3:4b"       # Modelo rápido e leve
+  max_tokens: 256          # Respostas curtas para voz
 
 voice:
   wake_word: "luna"
   tts_voice: "pt-BR-ThalitaMultilingualNeural"
+  tts_rate: "+15%"         # Velocidade da fala
 
 actions:
   enabled: true
@@ -135,9 +148,10 @@ actions:
 ## 🛠️ Requisitos
 
 - **Python** 3.10+
-- **Ollama** com um modelo instalado
+- **Ollama** com um modelo instalado (`ollama pull gemma3:4b`)
 - **Linux**: `xdotool`, `xclip`, `amixer` (para controle total)
 - **Windows**: `pyautogui` (instalado automaticamente)
+- **pynput**: Para atalhos de teclado globais
 
 ---
 

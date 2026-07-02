@@ -3,11 +3,16 @@ Luna — Ponto de entrada principal.
 Uso: python -m luna
 
 Suporta execução sem terminal visível (modo daemon).
+
+Atalhos Globais:
+  Ctrl+Shift+L — Abrir/fechar terminal da Luna
+  Ctrl+Shift+Q — Encerrar a Luna
 """
 
 import sys
 import os
 import platform
+import signal
 
 from luna.core.orchestrator import Orchestrator
 from luna.utils.config import load_config
@@ -80,10 +85,19 @@ def main():
 
     orchestrator = Orchestrator(config, logger)
 
+    # Handler para SIGTERM (para encerrar limpo via kill)
+    def _signal_handler(sig, frame):
+        console.print("\n[bold yellow]Luna desligando... Até mais![/]")
+        orchestrator.shutdown()
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, _signal_handler)
+
     try:
         orchestrator.run()
     except KeyboardInterrupt:
         console.print("\n[bold yellow]Luna desligando... Até mais![/]")
+    finally:
         orchestrator.shutdown()
         sys.exit(0)
 

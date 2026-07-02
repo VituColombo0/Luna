@@ -171,7 +171,8 @@ if [ -n "$PKG_MANAGER" ]; then
             # - libopenblas-dev: álgebra linear para dlib/numpy
             # - libasound2-dev: ALSA (áudio no Linux)
             PACKAGES="portaudio19-dev python3-dev python3-venv python3-pip ffmpeg \
-                      build-essential cmake curl git libopenblas-dev libasound2-dev"
+                      build-essential cmake curl git libopenblas-dev libasound2-dev \
+                      xdotool xclip wmctrl"
             ;;
         dnf)
             PACKAGES="portaudio-devel python3-devel python3-pip ffmpeg \
@@ -331,20 +332,20 @@ step 5 "Baixando modelo de IA..."
 
 echo ""
 echo -e "${BOLD}Escolha o modelo:${NC}"
-echo -e "  ${CYAN}[1]${NC} llama3.1   — Inteligente e versátil (8B) ${GREEN}← Recomendado${NC}"
-echo -e "  ${CYAN}[2]${NC} llama3.2   — Equilibrado (4.7GB RAM)"
-echo -e "  ${CYAN}[3]${NC} mistral    — Potente (4.1GB RAM)"
-echo -e "  ${CYAN}[4]${NC} gemma2     — Google, bom em PT-BR (5.4GB RAM)"
+echo -e "  ${CYAN}[1]${NC} gemma3:4b  — Google, rápido e leve (4B) ${GREEN}← Recomendado${NC}"
+echo -e "  ${CYAN}[2]${NC} llama3.1   — Inteligente e versátil (8B)"
+echo -e "  ${CYAN}[3]${NC} llama3.2   — Equilibrado (4.7GB RAM)"
+echo -e "  ${CYAN}[4]${NC} mistral    — Potente (4.1GB RAM)"
 echo ""
 read -p "Escolha [1/2/3/4] (padrão: 1): " model_choice
 model_choice=${model_choice:-1}
 
 case $model_choice in
-    1) MODEL="llama3.1" ;;
-    2) MODEL="llama3.2" ;;
-    3) MODEL="mistral" ;;
-    4) MODEL="gemma2" ;;
-    *) MODEL="llama3.1" ;;
+    1) MODEL="gemma3:4b" ;;
+    2) MODEL="llama3.1" ;;
+    3) MODEL="llama3.2" ;;
+    4) MODEL="mistral" ;;
+    *) MODEL="gemma3:4b" ;;
 esac
 
 # Verificar se o modelo já existe
@@ -426,6 +427,7 @@ llm:
   model: "$MODEL"
   vision_model: "moondream"
   temperature: 0.7
+  max_tokens: 256
   ollama_host: "http://localhost:11434"
 
 # --- Voz ---
@@ -434,6 +436,7 @@ voice:
   stt_language: "pt"
   tts_engine: "edge-tts"
   tts_voice: "$TTS_VOICE"
+  tts_rate: "+15%"
   wake_word: "luna"
 
 # --- Visão ---
@@ -554,7 +557,7 @@ echo -e "${BOLD}Verificação final...${NC}"
 
 # Testar imports Python essenciais
 IMPORT_ERRORS=""
-for pkg in yaml numpy pygame sounddevice edge_tts ollama rich psutil faster_whisper; do
+for pkg in yaml numpy pygame sounddevice edge_tts ollama rich psutil faster_whisper pynput; do
     if ! venv/bin/python -c "import $pkg" 2>/dev/null; then
         IMPORT_ERRORS="$IMPORT_ERRORS $pkg"
     fi

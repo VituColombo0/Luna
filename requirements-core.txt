@@ -24,3 +24,6 @@ psutil>=6.0.0
 
 # Interface terminal
 rich>=13.0.0
+
+# Atalhos de teclado globais
+pynput>=1.7.0

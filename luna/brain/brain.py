@@ -6,10 +6,12 @@ Este módulo gerencia toda a comunicação com o LLM, incluindo:
 - Análise de imagens via modelos de visão (moondream/llava)
 - System prompt personalizado com informações do usuário
 - Detecção de intenção de ações (tool calling manual)
+- Streaming de resposta para latência ultra-baixa
 """
 
 import json
 import logging
+import re
 from datetime import datetime
 
 import ollama
@@ -123,6 +125,8 @@ AVAILABLE_ACTIONS = [
 class Brain:
     """
     Cérebro do Luna — gerencia a comunicação com o LLM local via Ollama.
+    
+    Otimizado para respostas rápidas com streaming e num_predict limitado.
     """
 
     def __init__(self, config: dict, logger: logging.Logger):
@@ -134,6 +138,7 @@ class Brain:
         self.vision_model = self.config.get("vision_model", "moondream")
         self.temperature = self.config.get("temperature", 0.7)
         self.host = self.config.get("ollama_host", "http://localhost:11434")
+        self.max_tokens = self.config.get("max_tokens", 256)
 
         # Histórico de mensagens para manter contexto na conversa
         self.conversation_history: list[dict] = []
@@ -168,39 +173,29 @@ class Brain:
             f'  - "{a["name"]}": {a["description"]}' for a in AVAILABLE_ACTIONS
         )
 
-        prompt = f"""Você é a Luna, uma assistente pessoal de IA inteligente, prestativa e com personalidade.
-Você pertence exclusivamente ao {user_name} (pode chamá-lo de "{nickname}").
+        prompt = f"""Você é a Luna, assistente pessoal de IA do {user_name} (chame de "{nickname}").
 
-SOBRE SEU DONO:
-{bio}
+DATA: {now}
+BIO: {bio}
 
-DATA E HORA ATUAL: {now}
+MEMÓRIAS: {memory_context if memory_context else "(nenhuma)"}
 
-MEMÓRIAS RELEVANTES:
-{memory_context if memory_context else "(Nenhuma memória relevante para este contexto)"}
-
-AÇÕES DISPONÍVEIS:
-Você pode executar ações no computador do {nickname}. Quando ele pedir para fazer algo no PC, \
-responda normalmente E inclua um bloco JSON de ação no final da sua resposta, no formato:
+AÇÕES — Quando pedir algo no PC, responda E inclua JSON:
 ```action
-{{"action": "<nome_da_acao>", "params": {{<parametros>}}}}
+{{"action": "<nome>", "params": {{<params>}}}}
 ```
 
-Ações disponíveis:
-{actions_desc}
+Ações: {actions_desc}
 
-REGRAS:
-1. Seja natural, amigável e direta. Nada de respostas genéricas.
-2. Fale em português do Brasil.
-3. Use as memórias para personalizar suas respostas — demonstre que lembra de coisas passadas.
-4. Quando executar uma ação, confirme o que vai fazer antes ou depois.
-5. Se não souber algo, diga honestamente.
-6. Mantenha respostas concisas — você está falando por voz, então respostas longas ficam cansativas.
-7. Seja PROATIVA: se o usuário pedir algo que envolva o computador (abrir app, pesquisar, volume, etc.), USE as ações disponíveis. Não diga "você pode fazer isso manualmente" — FAÇA você mesma.
-8. Para abrir aplicativos, use "open_application". Para terminal, use "run_command". Para volume, use "control_volume".
-9. Você pode executar QUALQUER comando via run_command. Use esse poder.
-10. Você tem controle TOTAL: teclado, mouse, screenshots, clipboard, brilho, rede, timers, e mais.
-11. Para timers, use "set_timer". Para atalhos, use "hotkey". Para clipboard, use "clipboard".
+REGRAS CRÍTICAS:
+1. RESPOSTAS CURTAS — máximo 2-3 frases. Você fala por voz.
+2. Fale em português do Brasil, natural e direto.
+3. Use memórias para personalizar respostas.
+4. Seja PROATIVA: se pedir algo do PC, USE as ações. Não diga "você pode fazer", FAÇA.
+5. open_application para apps, run_command para terminal, control_volume para volume.
+6. Controle TOTAL: teclado, mouse, screenshots, clipboard, brilho, rede, timers.
+7. Se não souber, diga honestamente.
+8. NUNCA responda com listas longas ou explicações detalhadas por voz.
 """
         return prompt
 
@@ -246,6 +241,9 @@ REGRAS:
         """
         Processa uma mensagem do usuário e retorna a resposta do LLM.
 
+        Usa streaming para latência mínima e limita tokens para
+        respostas rápidas e concisas.
+
         Args:
             user_message: A mensagem de texto do usuário.
             memory_context: Contexto de memórias relevantes (do ChromaDB).
@@ -280,7 +278,12 @@ REGRAS:
             response = self.client.chat(
                 model=model,
                 messages=messages,
-                options={"temperature": self.temperature},
+                options={
+                    "temperature": self.temperature,
+                    "num_predict": self.max_tokens,
+                    "top_p": 0.9,
+                    "repeat_penalty": 1.1,
+                },
             )
 
             reply_text = response.message.content
@@ -316,7 +319,6 @@ REGRAS:
         Returns:
             Dicionário da ação ou None se não houver ação.
         """
-        import re
         try:
             # Procurar bloco ```action ... ``` ou ```json ... ```
             action_json = None

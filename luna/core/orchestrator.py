@@ -3,12 +3,16 @@ Orchestrator — O coração da Luna.
 
 Gerencia o loop principal e a comunicação entre todos os módulos:
 Brain (LLM), Voice (STT/TTS), Vision (câmera), Memory (ChromaDB),
-Actions (OS), Display (animações visuais).
+Actions (OS), Display (animações visuais), Hotkeys (atalhos globais).
 
 Modo Alexa:
 - Luna fica ouvindo em background (wake word detection)
 - Quando detecta "Luna", emite um beep e ativa escuta
 - Grava o comando, processa, responde e volta pro idle
+
+Atalhos Globais:
+- Ctrl+Shift+L — Abrir/fechar terminal da Luna
+- Ctrl+Shift+Q — Encerrar a Luna
 """
 
 import logging
@@ -26,6 +30,7 @@ from luna.memory.memory_manager import MemoryManager
 from luna.actions.action_executor import ActionExecutor
 from luna.vision.vision_module import VisionModule
 from luna.ui.display import Display, State
+from luna.core.hotkeys import HotkeyManager
 from luna.utils.logger import console
 
 
@@ -76,6 +81,15 @@ class Orchestrator:
         self.logger.info("Inicializando [bold]Vision[/] (Câmera/Face)...")
         self.vision = VisionModule(config, logger)
 
+        # --- Inicializar atalhos globais ---
+        self.logger.info("Inicializando [bold]Hotkeys[/] (Atalhos Globais)...")
+        self.hotkeys = HotkeyManager(logger, on_quit=self._quit_signal)
+
+    def _quit_signal(self):
+        """Callback chamado pelo atalho Ctrl+Shift+Q."""
+        self.running = False
+        console.print("\n[bold yellow]🔑 Atalho de encerramento detectado. Luna desligando...[/]")
+
     def run(self):
         """
         Loop principal da Luna.
@@ -116,6 +130,9 @@ class Orchestrator:
         user_name = self.config.get("user", {}).get("nickname", "Usuário")
         wake_word = self.config.get("voice", {}).get("wake_word", "luna")
 
+        # --- Iniciar atalhos globais ---
+        self.hotkeys.start()
+
         # --- Calibração de voz no primeiro uso ---
         if self.calibrator.needs_calibration():
             voice_available_for_cal = (
@@ -153,13 +170,16 @@ class Orchestrator:
                 f"[bold green]Todos os sistemas online![/]\n\n"
                 f"🎤 Modo: [bold cyan]Voz (estilo Alexa)[/]\n"
                 f'   Diga "[bold]{wake_word}[/]" seguido do seu comando\n'
-                f"   Exemplo: \"{wake_word}, que horas são?\"\n\n"
+                f'   Exemplo: "{wake_word}, que horas são?"\n\n'
                 f"⌨️  Comandos de texto (terminal):\n"
                 f"  [dim]/sair[/]   — Desligar a Luna\n"
                 f"  [dim]/limpar[/] — Limpar histórico de conversa\n"
                 f"  [dim]/texto[/]  — Mudar para modo texto\n"
                 f"  [dim]/status[/] — Ver status dos módulos\n"
-                f"  [dim]/calibrar[/] — Recalibrar voz",
+                f"  [dim]/calibrar[/] — Recalibrar voz\n\n"
+                f"🔑 Atalhos Globais:\n"
+                f"  [dim]Ctrl+Shift+L[/] — Abrir/fechar terminal\n"
+                f"  [dim]Ctrl+Shift+Q[/] — Encerrar Luna",
                 title="✅ Luna Pronta",
                 border_style="green",
             )
@@ -306,7 +326,10 @@ class Orchestrator:
                 f"  [dim]/sair[/]   — Desligar a Luna\n"
                 f"  [dim]/limpar[/] — Limpar histórico de conversa\n"
                 f"  [dim]/voz[/]    — Mudar para modo voz\n"
-                f"  [dim]/status[/] — Ver status dos módulos",
+                f"  [dim]/status[/] — Ver status dos módulos\n\n"
+                f"🔑 Atalhos Globais:\n"
+                f"  [dim]Ctrl+Shift+L[/] — Abrir/fechar terminal\n"
+                f"  [dim]Ctrl+Shift+Q[/] — Encerrar Luna",
                 title="✅ Luna Pronta",
                 border_style="green",
             )
@@ -499,7 +522,7 @@ class Orchestrator:
         table.add_row(
             "👂 Wake Word",
             "[green]Ativo[/]" if self.wake_word.is_available else "[yellow]Indisponível[/]",
-            f"Palavra: \"{self.wake_word.wake_word}\"",
+            f'Palavra: "{self.wake_word.wake_word}"',
         )
 
         # Listener
@@ -538,6 +561,13 @@ class Orchestrator:
             f"{len(self.actions.allowed_paths)} pastas permitidas",
         )
 
+        # Hotkeys
+        table.add_row(
+            "🔑 Hotkeys",
+            "[green]Ativo[/]" if self.hotkeys.is_available else "[yellow]Indisponível[/]",
+            "Ctrl+Shift+L/Q",
+        )
+
         console.print(table)
 
     def _run_calibration(self, wake_word: str):
@@ -572,6 +602,7 @@ class Orchestrator:
     def shutdown(self):
         """Desliga a Luna de forma limpa."""
         self.running = False
+        self.hotkeys.stop()
         self.wake_word.stop()
         self.display.stop()
         self.logger.info("Luna desligada.")
