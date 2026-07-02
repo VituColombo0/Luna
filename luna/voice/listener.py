@@ -263,7 +263,7 @@ class Listener:
             segments, info = self.whisper_model.transcribe(
                 tmp_path,
                 language=self.language,
-                beam_size=5,
+                beam_size=1,      # beam_size=1 para latência mínima em voz
                 vad_filter=True,  # Filtro de atividade de voz
             )
 

@@ -134,7 +134,7 @@ class Brain:
         self.user_config = config.get("user", {})
         self.logger = logger
 
-        self.model = self.config.get("model", "llama3.1")
+        self.model = self.config.get("model", "gemma3:4b")
         self.vision_model = self.config.get("vision_model", "moondream")
         self.temperature = self.config.get("temperature", 0.7)
         self.host = self.config.get("ollama_host", "http://localhost:11434")

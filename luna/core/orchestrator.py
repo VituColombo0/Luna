@@ -16,6 +16,7 @@ Atalhos Globais:
 """
 
 import logging
+import threading
 import time
 
 from rich.panel import Panel
@@ -47,6 +48,8 @@ class Orchestrator:
         self.config = config
         self.logger = logger
         self.running = False
+        self._processing = False
+        self._processing_lock = threading.Lock()
 
         user_name = config.get("user", {}).get("nickname", "Usuário")
 
@@ -119,7 +122,7 @@ class Orchestrator:
                     "Certifique-se de que:\n"
                     "1. O Ollama está instalado: [cyan]https://ollama.ai[/]\n"
                     "2. O serviço está rodando: [cyan]ollama serve[/]\n"
-                    "3. O modelo está baixado: [cyan]ollama pull llama3.1[/]",
+                    f"3. O modelo está baixado: [cyan]ollama pull {self.brain.model}[/]",
                     title="⚠️  Erro de Conexão",
                     border_style="red",
                 )
@@ -189,10 +192,6 @@ class Orchestrator:
         greeting = self._build_greeting(user_name)
         self._speak_with_display(greeting)
 
-        # Flag para controlar processamento de wake word
-        import threading
-        self._processing = False
-        self._processing_lock = threading.Lock()
 
         # Iniciar wake word detection em background
         self.wake_word.start(callback=self._on_wake_word_detected)
@@ -257,8 +256,6 @@ class Orchestrator:
         Args:
             initial_command: Texto após a wake word (pode estar vazio).
         """
-        import threading
-
         # Evitar processamento duplo
         with self._processing_lock:
             if self._processing:

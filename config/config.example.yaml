@@ -37,6 +37,7 @@ memory:
   enabled: false
   db_path: "data/luna_memory"
   collection_name: "conversations"
+  max_context_items: 5
 
 actions:
   enabled: true

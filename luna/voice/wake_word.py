@@ -255,15 +255,16 @@ class WakeWordDetector:
     def _detection_loop(self):
         """
         Loop principal de detecção em background usando InputStream contínuo.
+        
+        Usa um lock dedicado para proteger o buffer compartilhado entre
+        a thread do callback de áudio e o loop de processamento.
         """
-        import tempfile
-        import wave
-        from pathlib import Path
-
         chunk_samples = int(self.SAMPLE_RATE * self.CHUNK_DURATION)
         
         # Buffer circular para armazenar os pacotes contínuos
+        # Protegido por _buf_lock para acesso thread-safe
         buffer = np.zeros((0, self.CHANNELS), dtype=self.DTYPE)
+        _buf_lock = threading.Lock()
         
         def audio_callback(indata, frames, time_info, status):
             nonlocal buffer
@@ -274,7 +275,8 @@ class WakeWordDetector:
                 if self._paused:
                     return
             
-            buffer = np.concatenate((buffer, indata))
+            with _buf_lock:
+                buffer = np.concatenate((buffer, indata))
 
         try:
             stream = sd.InputStream(
@@ -282,7 +284,7 @@ class WakeWordDetector:
                 channels=self.CHANNELS,
                 dtype=self.DTYPE,
                 callback=audio_callback,
-                blocksize=int(self.SAMPLE_RATE * 0.5) # Blocos de 0.5s
+                blocksize=int(self.SAMPLE_RATE * 0.5)  # Blocos de 0.5s
             )
             
             with stream:
@@ -293,24 +295,28 @@ class WakeWordDetector:
                             is_paused = self._paused
                         
                         if is_paused:
-                            # Limpa o buffer se estiver pausado
-                            buffer = np.zeros((0, self.CHANNELS), dtype=self.DTYPE)
+                            with _buf_lock:
+                                buffer = np.zeros((0, self.CHANNELS), dtype=self.DTYPE)
                             time.sleep(0.1)
                             continue
 
+                        # Ler buffer de forma thread-safe
+                        with _buf_lock:
+                            buf_len = len(buffer)
+
                         # Processa apenas se tiver acumulado áudio suficiente
-                        if len(buffer) >= chunk_samples:
-                            chunk_to_process = buffer[:chunk_samples]
-                            # Remove os dados processados (sliding window)
-                            buffer = buffer[int(self.SAMPLE_RATE * 0.5):]
+                        if buf_len >= chunk_samples:
+                            with _buf_lock:
+                                chunk_to_process = buffer[:chunk_samples].copy()
+                                # Sliding window: avançar meio segundo
+                                buffer = buffer[int(self.SAMPLE_RATE * 0.5):]
                             
                             # Cálculo de energia RMS
                             chunk_float = chunk_to_process.astype(np.float32) / 32768.0
                             rms_energy = np.sqrt(np.mean(chunk_float**2)) * 10000
                             
                             if rms_energy < self.ENERGY_THRESHOLD:
-                                # Silêncio
-                                continue
+                                continue  # Silêncio
 
                             # Tem som! Transcrever com Whisper
                             text = self._transcribe_chunk(chunk_to_process)
@@ -320,13 +326,12 @@ class WakeWordDetector:
                                     f'Wake word detectada: "[bold green]{text}[/]"'
                                 )
                                 if self._callback:
-                                    # Extrair o comando após a wake word
                                     command = self._extract_command(text)
                                     self._callback(command)
-                                    # Limpa buffer para não repetir a mesma fala
-                                    buffer = np.zeros((0, self.CHANNELS), dtype=self.DTYPE)
+                                    # Limpar buffer para não repetir
+                                    with _buf_lock:
+                                        buffer = np.zeros((0, self.CHANNELS), dtype=self.DTYPE)
                         else:
-                            # Aguarda encher o buffer
                             time.sleep(0.1)
 
                     except Exception as e:
