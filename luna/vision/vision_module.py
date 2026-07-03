@@ -9,6 +9,8 @@ Funcionalidades:
 - Integração com arquivo de Membros para contexto personalizado
 """
 
+from __future__ import annotations
+
 import base64
 import logging
 import os
@@ -28,7 +30,12 @@ try:
 except ImportError:
     FACE_REC_AVAILABLE = False
 
-import numpy as np
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    np = None
 
 try:
     import ollama
@@ -195,20 +202,39 @@ class VisionModule:
         Returns:
             Descrição do membro ou string vazia.
         """
-        # Busca exata
-        if name in self.members_info:
-            return self.members_info[name]
+        import unicodedata
 
-        # Busca parcial — nome pode ser "Victor" e o cadastro "Victor Vieira Colombo"
-        name_lower = name.lower()
+        def _normalize(text: str) -> str:
+            # Remove acentos
+            nfkd = unicodedata.normalize('NFKD', text)
+            return "".join([c for c in nfkd if not unicodedata.combining(c)]).lower()
+
+        # Busca exata (normalizada)
+        name_norm = _normalize(name)
         for member_name, info in self.members_info.items():
-            # Verificar se alguma parte do nome bate
-            member_parts = member_name.lower().split()
-            search_parts = name_lower.split()
+            if _normalize(member_name) == name_norm:
+                return info
+
+        # Busca parcial com pontuação
+        search_parts = [p for p in name_norm.split() if len(p) > 2]
+
+        best_match = None
+        best_score = 0
+
+        for member_name, info in self.members_info.items():
+            member_parts = _normalize(member_name).split()
+            score = 0
 
             for part in search_parts:
-                if len(part) > 2 and any(part in mp for mp in member_parts):
-                    return info
+                if any(part in mp for mp in member_parts):
+                    score += 1
+
+            if score > best_score:
+                best_score = score
+                best_match = info
+
+        if best_match and best_score > 0:
+            return best_match
 
         return ""
 
