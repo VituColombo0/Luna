@@ -370,6 +370,9 @@ class Orchestrator:
         """
         Processa um comando do usuário (vindo de voz ou texto).
 
+        Integra visão (câmera + reconhecimento facial), memória de longo prazo
+        e execução de ações no PC.
+
         Args:
             user_input: O comando do usuário.
             user_name: Nome do usuário para exibição.
@@ -380,26 +383,69 @@ class Orchestrator:
 
         # --- Identificação Visual ---
         image_path = None
+        vision_context = ""
+        identified_person = user_name
+
         if self.vision.is_available:
+            # Sempre tentar identificar quem está falando
             if self.vision.face_rec_enabled:
                 identified_name = self.vision.identify_face()
                 if identified_name:
-                    user_name = identified_name
-                    self.logger.debug(f"Usuário identificado pela câmera: {user_name}")
-            
-            # Checar se o usuário pediu para olhar algo
-            vision_triggers = ["veja", "olha", "olhe", "vendo", "visão", "câmera", "camera", "imagem", "rosto"]
+                    identified_person = identified_name
+                    self.logger.info(
+                        f"Usuário identificado pela câmera: [cyan]{identified_name}[/]"
+                    )
+
+                    # Buscar info do membro no Membros.txt
+                    member_info = self.vision.get_member_info(identified_name)
+                    if member_info:
+                        vision_context = (
+                            f"PESSOA IDENTIFICADA PELA CÂMERA: {identified_name}\n"
+                            f"INFO: {member_info[:300]}"
+                        )
+
+            # Checar se o usuário pediu para olhar/ver/analisar algo
+            vision_triggers = [
+                "veja", "olha", "olhe", "vendo", "visão", "câmera", "camera",
+                "imagem", "rosto", "enxerga", "enxergando", "vê", "observa",
+                "identifica", "quem sou", "quem eu sou", "quem está",
+                "o que você vê", "o que vê", "me vendo", "quem é", "reconhece",
+                "olhando", "foto", "visual", "mostre", "analise"
+            ]
             if any(trigger in user_input.lower() for trigger in vision_triggers):
                 self.logger.info("Intenção de visão detectada. Capturando imagem...")
                 image_path = self.vision.capture_for_analysis()
 
+                # Adicionar descrição da cena ao contexto
+                if image_path:
+                    scene_desc = self.vision.describe_scene(
+                        image_path=image_path,
+                        question=user_input,
+                    )
+                    if scene_desc:
+                        vision_context += f"\nDESCRIÇÃO DA CÂMERA: {scene_desc}"
+
+        # Adicionar contexto dos membros (se disponível)
+        members_context = ""
+        if self.vision.is_available:
+            members_context = self.vision.get_all_members_context()
+
         # --- Buscar memórias relevantes ---
         memory_context = self.memory.recall(user_input)
 
+        # Combinar contextos
+        full_context = ""
+        if memory_context:
+            full_context += f"MEMÓRIAS RELEVANTES:\n{memory_context}\n\n"
+        if vision_context:
+            full_context += f"{vision_context}\n\n"
+        if members_context:
+            full_context += f"{members_context}\n"
+
         # --- Pensar (LLM) ---
         result = self.brain.think(
-            user_message=f"[{user_name} falando]: {user_input}",
-            memory_context=memory_context,
+            user_message=f"[{identified_person} falando]: {user_input}",
+            memory_context=full_context,
             image_path=image_path,
         )
 
@@ -426,11 +472,11 @@ class Orchestrator:
         # --- Falar a resposta com animação ---
         self._speak_with_display(response_text)
 
-        # --- Salvar na memória ---
+        # --- Salvar na memória com o nome correto ---
         self.memory.remember(
             user_message=user_input,
             assistant_response=response_text,
-            user_name=user_name,
+            user_name=identified_person,
         )
 
     def _speak_with_display(self, text: str):
@@ -557,6 +603,50 @@ class Orchestrator:
         )
 
         console.print(table)
+
+        # Vision
+        vision_status = "[green]Ativo[/]" if self.vision.is_available else "[yellow]Desativado[/]"
+        vision_detail = ""
+        if self.vision.is_available:
+            faces_count = len(set(self.vision.known_names)) if self.vision.known_names else 0
+            members_count = len(self.vision.members_info)
+            vision_detail = f"{faces_count} rostos, {members_count} membros"
+        else:
+            vision_detail = "opencv/face_recognition não instalado"
+
+        table2 = Table(
+            title="[bold bright_white]👁️  Visão & Memória[/]",
+            border_style="bright_magenta",
+            title_style="bold",
+        )
+        table2.add_column("Módulo", style="bold bright_white")
+        table2.add_column("Status")
+        table2.add_column("Detalhe", style="dim")
+
+        table2.add_row("👁️  Vision", vision_status, vision_detail)
+
+        mem_stats = self.memory.get_stats()
+        table2.add_row(
+            "📚 Memory",
+            "[green]Ativo[/]" if mem_stats["enabled"] else "[yellow]Desativado[/]",
+            f"{mem_stats['count']} memórias salvas",
+        )
+
+        # Listar membros conhecidos
+        if self.vision.is_available and self.vision.members_info:
+            for name in self.vision.members_info:
+                has_face = name in self.vision.known_names or any(
+                    n.lower() in name.lower() or name.lower() in n.lower()
+                    for n in self.vision.known_names
+                )
+                face_icon = "🟢" if has_face else "🟡"
+                table2.add_row(
+                    f"   {face_icon} {name}",
+                    "[green]Reconhecível[/]" if has_face else "[yellow]Sem foto[/]",
+                    "Face + info carregados" if has_face else "Adicione fotos em data/faces/",
+                )
+
+        console.print(table2)
 
     def _run_calibration(self, wake_word: str):
         """

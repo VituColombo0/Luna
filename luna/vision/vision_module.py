@@ -3,10 +3,13 @@ VisionModule — Visão computacional da Luna.
 
 Funcionalidades:
 - Captura de imagens da webcam
-- Reconhecimento facial do usuário
-- Descrição de cenas via modelo de visão (moondream/llava via Ollama)
+- Reconhecimento facial dos membros do grupo
+- Descrição de cenas via modelo de visão (moondream via Ollama)
+- Identificação de quem está falando baseado em fotos cadastradas
+- Integração com arquivo de Membros para contexto personalizado
 """
 
+import base64
 import logging
 import os
 from pathlib import Path
@@ -27,14 +30,25 @@ except ImportError:
 
 import numpy as np
 
+try:
+    import ollama
+
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+
 
 class VisionModule:
     """
     Módulo de visão do Luna — câmera, reconhecimento facial e análise de imagem.
+
+    Integra com o arquivo Membros.txt para saber quem são os membros do grupo
+    e dar contexto ao LLM sobre com quem está falando.
     """
 
     def __init__(self, config: dict, logger: logging.Logger):
         self.config = config.get("vision", {})
+        self.llm_config = config.get("llm", {})
         self.logger = logger
 
         self.enabled = self.config.get("enabled", True) and OPENCV_AVAILABLE
@@ -43,10 +57,15 @@ class VisionModule:
             self.config.get("face_recognition", True) and FACE_REC_AVAILABLE
         )
         self.faces_dir = self.config.get("faces_dir", "data/faces")
+        self.vision_model = self.llm_config.get("vision_model", "moondream")
+        self.ollama_host = self.llm_config.get("ollama_host", "http://localhost:11434")
 
         # Encodings conhecidos (carregados do faces_dir)
         self.known_encodings: list[np.ndarray] = []
         self.known_names: list[str] = []
+
+        # Informações dos membros carregadas do Membros.txt
+        self.members_info: dict[str, str] = {}
 
         if not OPENCV_AVAILABLE:
             self.logger.warning(
@@ -56,13 +75,160 @@ class VisionModule:
             self.enabled = False
             return
 
+        # Carregar info dos membros
+        self._load_members_info()
+
         if self.face_rec_enabled:
             self._load_known_faces()
 
         self.logger.info(
             f"Vision inicializado — câmera: [cyan]{self.camera_index}[/], "
-            f"rostos conhecidos: [cyan]{len(self.known_names)}[/]"
+            f"rostos conhecidos: [cyan]{len(self.known_names)}[/], "
+            f"membros carregados: [cyan]{len(self.members_info)}[/]"
         )
+
+    def _load_members_info(self):
+        """
+        Carrega informações dos membros do arquivo Membros.txt.
+
+        Procura o arquivo na raiz do projeto e parseia os blocos
+        de texto associados a cada pessoa.
+        """
+        # Procurar Membros.txt na raiz do projeto
+        project_root = Path(__file__).resolve().parent.parent.parent
+        members_file = project_root / "Membros.txt"
+
+        if not members_file.exists():
+            self.logger.info(
+                "Arquivo Membros.txt não encontrado. "
+                "Crie-o na raiz do projeto para identificação de membros."
+            )
+            return
+
+        try:
+            content = members_file.read_text(encoding="utf-8")
+            self._parse_members(content)
+            self.logger.info(
+                f"Membros carregados: {', '.join(self.members_info.keys())}"
+            )
+        except Exception as e:
+            self.logger.warning(f"Erro ao carregar Membros.txt: {e}")
+
+    def _parse_members(self, content: str):
+        """
+        Parseia o conteúdo do Membros.txt e extrai informações de cada membro.
+
+        Identifica blocos de texto associados a nomes conhecidos.
+        O arquivo pode ter formato livre — o parser procura por nomes
+        seguidos de descrições.
+
+        Args:
+            content: Conteúdo completo do arquivo Membros.txt.
+        """
+        lines = content.strip().split("\n")
+
+        current_name = None
+        current_desc = []
+
+        # Nomes que indicam início de um novo membro
+        # (linhas curtas que parecem ser nomes de pessoas)
+        potential_names = []
+
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            # Detectar se é um nome (linha curta, sem ponto, sem dois pontos no fim)
+            # Heurística: linha com 2-5 palavras, sem pontuação pesada
+            words = stripped.split()
+            is_name_line = (
+                2 <= len(words) <= 6
+                and not stripped.endswith(".")
+                and not stripped.endswith(":")
+                and not stripped.startswith("-")
+                and not stripped.startswith("•")
+                and not stripped.lower().startswith("o professor")
+                and not stripped.lower().startswith("os outros")
+                and not stripped.lower() == "membros"
+                and not stripped.lower().startswith("formação")
+                and not stripped.lower().startswith("áreas")
+                and not stripped.lower().startswith("cargo")
+                and not stripped.lower().startswith("esse é")
+                and not stripped.lower().startswith("atualmente")
+                and any(w[0].isupper() for w in words)
+                and len(stripped) < 60
+            )
+
+            if is_name_line and not any(c in stripped for c in [".", ";", ",", ":"]):
+                # Salvar bloco anterior
+                if current_name:
+                    self.members_info[current_name] = "\n".join(current_desc).strip()
+
+                current_name = stripped
+                current_desc = []
+            elif current_name:
+                current_desc.append(stripped)
+            else:
+                # Texto antes do primeiro nome — tentar capturar como info geral
+                # Verificar se menciona um nome no meio da descrição
+                if "professor" in stripped.lower() and "gazziro" in stripped.lower():
+                    current_name = "Mario Alexandre Gazziro"
+                    current_desc = [stripped]
+                elif "professor mario" in stripped.lower():
+                    current_name = "Mario Alexandre Gazziro"
+                    current_desc = [stripped]
+
+        # Salvar o último bloco
+        if current_name:
+            self.members_info[current_name] = "\n".join(current_desc).strip()
+
+    def get_member_info(self, name: str) -> str:
+        """
+        Retorna informações sobre um membro pelo nome.
+
+        Faz busca parcial (se o nome contém parte do nome cadastrado).
+
+        Args:
+            name: Nome a buscar.
+
+        Returns:
+            Descrição do membro ou string vazia.
+        """
+        # Busca exata
+        if name in self.members_info:
+            return self.members_info[name]
+
+        # Busca parcial — nome pode ser "Victor" e o cadastro "Victor Vieira Colombo"
+        name_lower = name.lower()
+        for member_name, info in self.members_info.items():
+            # Verificar se alguma parte do nome bate
+            member_parts = member_name.lower().split()
+            search_parts = name_lower.split()
+
+            for part in search_parts:
+                if len(part) > 2 and any(part in mp for mp in member_parts):
+                    return info
+
+        return ""
+
+    def get_all_members_context(self) -> str:
+        """
+        Retorna um resumo de todos os membros para injetar no prompt do LLM.
+
+        Returns:
+            String formatada com info de todos os membros.
+        """
+        if not self.members_info:
+            return ""
+
+        parts = []
+        for name, info in self.members_info.items():
+            # Pegar apenas as primeiras 200 chars da info para não estourar o contexto
+            short_info = info[:200] + "..." if len(info) > 200 else info
+            parts.append(f"- {name}: {short_info}")
+
+        return "MEMBROS DO GRUPO:\n" + "\n".join(parts)
 
     def _load_known_faces(self):
         """
@@ -131,7 +297,10 @@ class VisionModule:
                 self.logger.warning("Não foi possível abrir a câmera.")
                 return None
 
-            ret, frame = cap.read()
+            # Capturar múltiplos frames para pegar um bom (descarta os primeiros)
+            for _ in range(5):
+                ret, frame = cap.read()
+
             cap.release()
 
             if ret:
@@ -229,6 +398,92 @@ class VisionModule:
         if self.save_frame(frame, save_path):
             return save_path
         return None
+
+    def describe_scene(self, image_path: str | None = None, question: str = "") -> str:
+        """
+        Usa o modelo de visão (moondream) para descrever o que a câmera está vendo.
+
+        Args:
+            image_path: Caminho para imagem existente. Se None, captura da câmera.
+            question: Pergunta específica sobre a imagem.
+
+        Returns:
+            Descrição textual da cena ou mensagem de erro.
+        """
+        if not OLLAMA_AVAILABLE:
+            return "Módulo Ollama não disponível para análise de visão."
+
+        if image_path is None:
+            image_path = self.capture_for_analysis()
+            if image_path is None:
+                return "Não consegui capturar imagem da câmera."
+
+        try:
+            prompt = question if question else "Descreva detalhadamente o que você vê nesta imagem em português do Brasil. Inclua pessoas, objetos, ambiente e qualquer detalhe relevante."
+
+            client = ollama.Client(host=self.ollama_host)
+            response = client.chat(
+                model=self.vision_model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                        "images": [image_path],
+                    }
+                ],
+                options={
+                    "num_predict": 300,
+                    "temperature": 0.5,
+                },
+            )
+
+            return response.message.content
+
+        except Exception as e:
+            self.logger.error(f"Erro ao analisar imagem com {self.vision_model}: {e}")
+            return f"Erro ao analisar imagem: {e}"
+
+    def identify_and_describe(self) -> dict:
+        """
+        Captura frame, identifica rostos e descreve a cena.
+
+        Combina reconhecimento facial (se disponível) com análise de cena
+        via modelo de visão.
+
+        Returns:
+            Dicionário com:
+                - "identified_person": Nome da pessoa identificada (ou None)
+                - "member_info": Info do membro do Membros.txt (ou "")
+                - "scene_description": Descrição da cena pelo modelo de visão
+                - "image_path": Caminho da imagem capturada
+        """
+        result = {
+            "identified_person": None,
+            "member_info": "",
+            "scene_description": "",
+            "image_path": None,
+        }
+
+        # Capturar frame
+        frame = self.capture_frame()
+        if frame is None:
+            result["scene_description"] = "Não consegui acessar a câmera."
+            return result
+
+        # Salvar para análise
+        save_path = "/tmp/luna_vision.jpg"
+        self.save_frame(frame, save_path)
+        result["image_path"] = save_path
+
+        # Identificar rosto
+        if self.face_rec_enabled:
+            identified = self.identify_face(frame)
+            if identified:
+                result["identified_person"] = identified
+                result["member_info"] = self.get_member_info(identified)
+                self.logger.info(f"Pessoa identificada: [cyan]{identified}[/]")
+
+        return result
 
     @property
     def is_available(self) -> bool:

@@ -29,15 +29,17 @@ voice:
   calibration_seconds: 1.5
 
 vision:
-  enabled: false
+  enabled: true
   camera_index: 0
+  face_recognition: true
   faces_dir: "data/faces"
 
 memory:
-  enabled: false
+  enabled: true
   db_path: "data/luna_memory"
   collection_name: "conversations"
   max_context_items: 5
+  auto_save: true
 
 actions:
   enabled: true

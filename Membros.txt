@@ -1,0 +1,48 @@
+Membros
+
+O professor Mario Alexandre Gazziro é docente da Universidade Federal do ABC (UFABC), vinculado ao Centro de Engenharia, Modelagem e Ciências Sociais Aplicadas (CECS), atuando principalmente na área de Engenharia da Informação e Redes de Computadores.
+
+Formação acadêmica
+Bacharel em Informática pela Universidade de São Paulo (2003);
+Mestre em Ciência da Computação pela Universidade Federal de São Carlos (2005);
+Doutor em Física Computacional pela USP (2009);
+Doutorado sanduíche no Instituto Superior Técnico, Portugal;
+Especialização em projeto de circuitos integrados pela Cadence (EUA) e Toshiba Semiconductors (Japão).
+Áreas de pesquisa
+
+As principais linhas de atuação incluem:
+
+Redes de computadores;
+Computação forense;
+Cibernética;
+Microeletrônica;
+Hardware reconfigurável (FPGA);
+Processamento de imagens e sinais;
+Engenharia biomédica;
+Neurociências;
+Interfaces cérebro-máquina;
+RFID;
+Ressonância magnética;
+Sistemas embarcados;
+Arte eletrônica e computação aplicada às artes.
+Cargo atual
+
+Atualmente é:
+
+Professor Associado da UFABC;
+Regime de Dedicação Exclusiva (40 horas);
+Coordenador do laboratório LAOB (Laboratório de Arquitetura e Organização de Computadores/Engenharia de Informação)
+
+Esse é o link do nosso laboratório com as informações dele:
+http:/professor.ufabc.edu.br/~mario.gazziro
+
+
+Os outros alunos notáveis e os criadores da LUNA são:
+
+
+Victor Vieira Colombo
+Profissional com sólida experiência nas áreas de Ciências Exatas e Tecnologia, iniciou sua trajetória acadêmica com formação técnica em Informática pelo Instituto Federal do Sul de Minas Gerais (IF-Sul de Minas), destacando-se pelo alto desempenho e pelo desenvolvimento consistente de habilidades em computação.Atuou como Auxiliar de Desenvolvimento no IF-Sul de Minas, contribuindo para o desenvolvimento de sistemas e para o design de jogos digitais. Posteriormente, foi estagiário na TI Security, onde realizou atividades de pentest e desenvolveu softwares para controle de dados, consolidando conhecimentos em Linux, Python, Shell Script e segurança da informação.Atualmente, é graduando em Bacharelado em Engenharia de Informação em Ciência e Tecnologia pela Universidade Federal do ABC (UFABC), com foco em pesquisa e desenvolvimento tecnológico. Participou de diversos projetos de pesquisa na universidade, atuando diretamente no aprimoramento do sistema de segurança institucional, no desenvolvimento de tecnologias baseadas em LLMs e como consultor em Cibersegurança e Inteligência
+
+
+Mário Guerrero Cerconvis
+Atualmente cursa Bacharelado em Ciências e Tecnologia na Universidade Federal do ABC, desde 2024. Tem experiência em pesquisa e desenvolvimento nas áreas de sistemas embarcados e processamento de imagens e sinais - foram desenvolvidos projetos de segurança, reconhecimento de imagem e biometria - além de ciências de dados e Inteligência Artificial, onde desenvolveu e treinou modelos para predição e categorização com tecnologias como Yolo e Keras, como também, com tecnologia CNN (Convolutional Neural Networks) e Redes Neurais. Nesses projetos, teve como atividade não somente o desenvolvimento do produto final, como também a gestão de pessoas, projetos e parcerias.

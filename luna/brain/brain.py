@@ -6,7 +6,7 @@ Este módulo gerencia toda a comunicação com o LLM, incluindo:
 - Análise de imagens via modelos de visão (moondream/llava)
 - System prompt personalizado com informações do usuário
 - Detecção de intenção de ações (tool calling manual)
-- Streaming de resposta para latência ultra-baixa
+- Integração com visão (câmera) e memória de longo prazo
 """
 
 import json
@@ -127,6 +127,7 @@ class Brain:
     Cérebro do Luna — gerencia a comunicação com o LLM local via Ollama.
     
     Otimizado para respostas rápidas com streaming e num_predict limitado.
+    Integra visão (câmera + membros) e memória de longo prazo.
     """
 
     def __init__(self, config: dict, logger: logging.Logger):
@@ -154,11 +155,11 @@ class Brain:
 
     def _build_system_prompt(self, memory_context: str = "") -> str:
         """
-        Constrói o system prompt personalizado com informações do usuário
-        e memórias relevantes.
+        Constrói o system prompt personalizado com informações do usuário,
+        memórias relevantes, contexto de visão e info de membros.
 
         Args:
-            memory_context: Contexto adicional vindo da memória de longo prazo.
+            memory_context: Contexto combinado (memórias + visão + membros).
 
         Returns:
             System prompt formatado.
@@ -173,40 +174,48 @@ class Brain:
             f'  - "{a["name"]}": {a["description"]}' for a in AVAILABLE_ACTIONS
         )
 
-        prompt = f"""Você é Luna, assistente pessoal de IA com controle TOTAL do computador de {nickname}.
-
-DATA/HORA: {now}
-USUÁRIO: {user_name} (chame de "{nickname}")
-BIO: {bio}
-MEMÓRIAS: {memory_context if memory_context else "(nenhuma)"}
-
-== COMO EXECUTAR AÇÕES ==
-Sempre que o usuário pedir QUALQUER coisa no computador, você DEVE incluir um bloco JSON assim:
-```action
-{{"action": "<nome_da_acao>", "params": {{<parametros>}}}}
-```
-
-EXEMPLOS OBRIGATÓRIOS:
-- "abre o google" → responda "Abrindo o Google!" + ```action\n{{"action": "open_browser", "params": {{"url": "https://www.google.com"}}}}\n```
-- "abre o youtube" → ```action\n{{"action": "open_browser", "params": {{"url": "https://www.youtube.com"}}}}\n```
-- "pesquisa sobre gatos" → ```action\n{{"action": "search_web", "params": {{"query": "gatos"}}}}\n```
-- "abre o firefox" → ```action\n{{"action": "open_application", "params": {{"app_name": "firefox"}}}}\n```
-- "abre o spotify" → ```action\n{{"action": "open_application", "params": {{"app_name": "spotify"}}}}\n```
-- "aumenta o volume" → ```action\n{{"action": "control_volume", "params": {{"action": "up"}}}}\n```
-- "roda ls no terminal" → ```action\n{{"action": "run_command", "params": {{"command": "ls -la"}}}}\n```
-- "desliga o pc" → ```action\n{{"action": "system_power", "params": {{"action": "shutdown"}}}}\n```
-
-== AÇÕES DISPONÍVEIS ==
-{actions_desc}
-
-== REGRAS ==
-1. RESPOSTAS CURTAS: máximo 1-2 frases. Você é uma assistente de VOZ.
-2. Fale em português do Brasil, natural e direto.
-3. SEMPRE EXECUTE: se o usuário pedir algo no PC, inclua o bloco ```action```. NUNCA diga "você pode fazer", FAÇA.
-4. Use open_browser para sites, open_application para apps, run_command para terminal.
-5. Se não souber, diga honestamente.
-6. NUNCA responda com listas longas.
-"""
+        prompt = (
+            f'Voce eh Luna, assistente pessoal de IA com controle TOTAL do computador e VISAO por camera.\n'
+            f'\n'
+            f'DATA/HORA: {now}\n'
+            f'DONO: {user_name} (chame de "{nickname}")\n'
+            f'BIO: {bio}\n'
+            f'\n'
+            f'== CONTEXTO ==\n'
+            f'{memory_context if memory_context else "(sem contexto adicional)"}\n'
+            f'\n'
+            f'== VISAO ==\n'
+            f'Voce tem camera e pode identificar pessoas pelo rosto. '
+            f'Se a mensagem inclui "PESSOA IDENTIFICADA PELA CAMERA", use o nome para personalizar a resposta e cumprimente pelo nome. '
+            f'Se perguntarem "quem sou eu" ou "quem esta aqui", responda com base na identificacao visual. '
+            f'Se receber "DESCRICAO DA CAMERA", use para responder sobre o que esta vendo.\n'
+            f'\n'
+            f'== MEMORIA ==\n'
+            f'Voce tem memoria de LONGO PRAZO. Memorias relevantes aparecem no contexto acima. Use para:\n'
+            f'- Lembrar de projetos, preferencias, conversas passadas\n'
+            f'- Personalizar respostas com base no historico\n'
+            f'- Nunca negar que lembra de algo se estiver no contexto\n'
+            f'\n'
+            f'== ACOES ==\n'
+            f'Quando pedir algo no PC, inclua JSON:\n'
+            f'```action\n'
+            f'{{"action": "<nome>", "params": {{<params>}}}}\n'
+            f'```\n'
+            f'\n'
+            f'Exemplos: open_browser(url), search_web(query), open_application(app_name), '
+            f'control_volume(action), run_command(command), system_power(action)\n'
+            f'\n'
+            f'ACOES DISPONIVEIS:\n'
+            f'{actions_desc}\n'
+            f'\n'
+            f'== REGRAS ==\n'
+            f'1. RESPOSTAS CURTAS: 1-2 frases. Voce eh assistente de VOZ.\n'
+            f'2. Portugues do Brasil, natural e direto.\n'
+            f'3. SEMPRE EXECUTE acoes do PC com bloco ```action```. FACA, nao sugira.\n'
+            f'4. Use memorias para personalizar. Se lembra, mencione.\n'
+            f'5. Se identificou alguem pela camera, trate pelo nome.\n'
+            f'6. NUNCA listas longas.\n'
+        )
         return prompt
 
     def check_connection(self) -> bool:
@@ -256,7 +265,7 @@ EXEMPLOS OBRIGATÓRIOS:
 
         Args:
             user_message: A mensagem de texto do usuário.
-            memory_context: Contexto de memórias relevantes (do ChromaDB).
+            memory_context: Contexto combinado (memórias + visão + membros).
             image_path: Caminho opcional para uma imagem (ativa modelo de visão).
 
         Returns:
