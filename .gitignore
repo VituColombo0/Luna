@@ -39,3 +39,4 @@ Thumbs.db
 
 # Configuração pessoal (gerada pelo instalador)
 config/config.yaml
+.env/

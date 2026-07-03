@@ -113,14 +113,28 @@ class ActionExecutor:
         path = os.path.expanduser(os.path.expandvars(path))
         target = Path(path)
 
+        # Se o caminho não é absoluto e não começa com ~, tentar como relativo ao home
+        if not target.is_absolute():
+            home_target = Path(os.path.expanduser("~")) / path
+            if home_target.exists():
+                target = home_target
+            else:
+                # Tentar nos caminhos comuns do usuário
+                common_dirs = ["Documents", "Downloads", "Desktop", "Pictures", "Videos"]
+                for d in common_dirs:
+                    candidate = Path(os.path.expanduser("~")) / d / path
+                    if candidate.exists():
+                        target = candidate
+                        break
+
         # Verificar se o caminho existe
         if not target.exists():
-            # Tentar procurar em pastas permitidas
+            # Tentar procurar em pastas permitidas (busca case-insensitive)
             found = self._find_in_allowed_paths(target.name)
             if found:
                 target = found
             else:
-                return f"Arquivo não encontrado: {path}"
+                return f"Arquivo não encontrado: {path}. Verifique se o caminho está correto."
 
         # Verificar permissão de acesso
         if not self._is_path_allowed(str(target)):
@@ -128,7 +142,11 @@ class ActionExecutor:
 
         try:
             if self.system == "Linux":
-                subprocess.Popen(["xdg-open", str(target)])
+                subprocess.Popen(
+                    ["xdg-open", str(target)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             elif self.system == "Darwin":
                 subprocess.Popen(["open", str(target)])
             elif self.system == "Windows":
@@ -152,11 +170,29 @@ class ActionExecutor:
         if not url.startswith(("http://", "https://")):
             url = "https://" + url
 
+        self.logger.info(f"Abrindo URL: [cyan]{url}[/]")
+
         try:
-            webbrowser.open(url)
-            return f"Abrindo no navegador: {url}"
+            # Tentar webbrowser primeiro
+            success = webbrowser.open(url)
+            if success:
+                return f"Abrindo no navegador: {url}"
         except Exception as e:
-            return f"Erro ao abrir navegador: {e}"
+            self.logger.debug(f"webbrowser.open falhou: {e}")
+
+        # Fallback: xdg-open no Linux
+        if self.system == "Linux":
+            try:
+                subprocess.Popen(
+                    ["xdg-open", url],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                return f"Abrindo no navegador: {url}"
+            except Exception as e:
+                return f"Erro ao abrir navegador: {e}"
+
+        return f"Não foi possível abrir o navegador para: {url}"
 
     def _search_web(self, params: dict) -> str:
         """Pesquisa algo no Google via navegador."""
@@ -168,11 +204,28 @@ class ActionExecutor:
             return "Navegador desativado na configuração."
 
         url = f"https://www.google.com/search?q={quote_plus(query)}"
+        self.logger.info(f"Pesquisando: [cyan]{query}[/] -> {url}")
+
         try:
-            webbrowser.open(url)
-            return f"Pesquisando: {query}"
+            success = webbrowser.open(url)
+            if success:
+                return f"Pesquisando: {query}"
         except Exception as e:
-            return f"Erro na pesquisa: {e}"
+            self.logger.debug(f"webbrowser.open falhou: {e}")
+
+        # Fallback: xdg-open no Linux
+        if self.system == "Linux":
+            try:
+                subprocess.Popen(
+                    ["xdg-open", url],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                return f"Pesquisando: {query}"
+            except Exception as e:
+                return f"Erro na pesquisa: {e}"
+
+        return f"Não foi possível abrir o navegador para pesquisar: {query}"
 
     def _search_files(self, params: dict) -> str:
         """Procura arquivos pelo nome nas pastas permitidas."""
