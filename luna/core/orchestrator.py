@@ -580,13 +580,7 @@ class Orchestrator:
             "Beeps de confirmação",
         )
 
-        # Memory
-        mem_stats = self.memory.get_stats()
-        table.add_row(
-            "📚 Memory",
-            "[green]Ativo[/]" if mem_stats["enabled"] else "[yellow]Desativado[/]",
-            f"{mem_stats['count']} memórias",
-        )
+        # Memory (detalhes na tabela de Visão & Memória abaixo)
 
         # Actions
         table.add_row(

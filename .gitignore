@@ -1,6 +1,10 @@
-# Dados persistentes (memória, faces, etc.)
+# Dados persistentes (memória de longo prazo)
+data/luna_memory/
 data/memory/
-data/faces/
+
+# Fotos de faces (contém dados pessoais)
+data/faces/*
+!data/faces/README.txt
 
 # Logs
 data/alfred.log
