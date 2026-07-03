@@ -43,9 +43,14 @@ def main():
     if headless:
         hide_console_window()
 
-    console.print("\n[bold magenta]╔══════════════════════════════════════╗[/]")
-    console.print("[bold magenta]║[/]   [bold white]🌙 Luna — Assistente Pessoal[/]       [bold magenta]║[/]")
-    console.print("[bold magenta]╚══════════════════════════════════════╝[/]\n")
+    console.print("")
+    console.print("[bold bright_magenta]  ╔═══════════════════════════════════════════╗[/]")
+    console.print("[bold bright_magenta]  ║[/]                                           [bold bright_magenta]║[/]")
+    console.print("[bold bright_magenta]  ║[/]   [bold bright_white]🌙  L U N A[/]  [dim]— Assistente Pessoal[/]    [bold bright_magenta]║[/]")
+    console.print("[bold bright_magenta]  ║[/]   [dim italic]Inteligência Local • Controle Total[/]   [bold bright_magenta]║[/]")
+    console.print("[bold bright_magenta]  ║[/]                                           [bold bright_magenta]║[/]")
+    console.print("[bold bright_magenta]  ╚═══════════════════════════════════════════╝[/]")
+    console.print("")
 
     logger = setup_logger()
 

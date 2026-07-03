@@ -1,7 +1,7 @@
 # 🌙 Luna — Assistente Pessoal de IA Local
 
 Luna é uma assistente pessoal de IA que roda **100% localmente** no seu computador.
-Ela ouve, entende, fala e executa ações no seu PC — tudo sem depender da nuvem.
+Ela ouve, entende, fala e **controla seu PC** — tudo sem depender da nuvem.
 
 ---
 
@@ -9,45 +9,43 @@ Ela ouve, entende, fala e executa ações no seu PC — tudo sem depender da nuv
 
 ### 🎤 Interação por Voz
 - **Wake word**: Diga "Luna" para ativar (estilo Alexa)
-- **Speech-to-Text**: Transcrição local via Faster-Whisper com InputStream contínuo
-- **Text-to-Speech**: Voz natural em PT-BR via Edge-TTS com **cache de áudio**
+- **Speech-to-Text**: Transcrição local via Faster-Whisper
+- **Text-to-Speech**: Voz natural em PT-BR via Edge-TTS
 - **Calibração adaptativa**: Calibra o microfone na primeira execução
-- **Detecção RMS**: Imune a ruídos, detecta fala real
 
 ### 🧠 Inteligência
-- **LLM local**: Integração com Ollama (Gemma 3 4B, Llama 3.1, etc.)
-- **Respostas rápidas**: Otimizado para respostas curtas por voz (2-3 frases)
+- **LLM local ultra-rápido**: Qwen 2.5 1.5B via Ollama (~1s de resposta)
+- **Respostas curtas**: Otimizado para respostas de 1-2 frases por voz
 - **Memória de longo prazo**: ChromaDB com busca semântica
 - **Contexto personalizado**: Luna conhece e lembra de você
 
 ### 🖥️ Controle Total do Computador
-- **Aplicativos**: Abrir, fechar e gerenciar apps
-- **Navegador**: Pesquisar na web, abrir URLs
-- **Arquivos**: Buscar, ler e criar arquivos
-- **Terminal**: Executar qualquer comando do sistema
-- **Volume**: Aumentar, diminuir, mutar
-- **Brilho**: Controlar brilho da tela
-- **Teclado**: Digitar texto e pressionar atalhos
-- **Clipboard**: Ler e escrever na área de transferência
-- **Screenshots**: Capturar tela inteira ou janela ativa
-- **Rede**: Ver IP, status da conexão, ligar/desligar Wi-Fi
-- **Energia**: Desligar, reiniciar, suspender, bloquear
-- **Timer**: Temporizadores com notificação
-- **Processos**: Listar e encerrar processos
+| Ação | Exemplo |
+|------|---------|
+| **Abrir sites** | "Luna, abre o Google" |
+| **Abrir apps** | "Abre o Spotify" |
+| **Pesquisar na web** | "Pesquisa sobre IA" |
+| **Executar comandos** | "Roda 'ls -la' no terminal" |
+| **Controlar volume** | "Aumenta o volume" |
+| **Screenshots** | "Tira um screenshot" |
+| **Clipboard** | "Copia isso para a clipboard" |
+| **Brilho** | "Diminui o brilho" |
+| **Timer** | "Timer de 5 minutos" |
+| **Rede** | "Qual meu IP?" |
+| **Energia** | "Desliga o computador" |
+| **Processos** | "Mata o processo do Chrome" |
+| **Teclado** | "Ctrl+C" |
+| **Arquivos** | "Lê o arquivo ~/notas.txt" |
 
-### 🔑 Atalhos de Teclado Globais
+### 🔑 Atalhos Globais
 | Atalho | Ação |
 |--------|------|
-| `Ctrl+Shift+L` | Abrir/fechar terminal da Luna |
+| `Ctrl+Shift+L` | Abrir/fechar terminal |
 | `Ctrl+Shift+Q` | Encerrar a Luna |
 
 ### 👁️ Visão (Opcional)
 - Reconhecimento facial
-- Análise de imagens com modelos de visão
-
-### 🔇 Modo Headless
-- Roda em background sem terminal visível
-- Perfeito para uso no dia a dia
+- Análise de imagens
 
 ---
 
@@ -64,65 +62,63 @@ chmod +x install.sh
 install.bat
 ```
 
+O instalador configura **tudo automaticamente**:
+- Python + dependências
+- Ollama + modelo qwen2.5:1.5b
+- Perfil do usuário
+- Auto-start no boot
+
 ---
 
 ## ▶️ Como Usar
 
-### Modo normal (com terminal)
 ```bash
-./start.sh          # Linux
-start.bat           # Windows
-```
+# Linux
+./start.sh
 
-### Modo headless (sem terminal)
-```bash
-./start.sh --headless       # Linux
-start.bat --headless        # Windows
-```
+# Windows
+start.bat
 
-### Direto com Python
-```bash
-python3 -m luna                 # Normal
-python3 -m luna --headless      # Background
+# Modo headless (sem terminal)
+./start.sh --headless
 ```
 
 ---
 
-## 📁 Estrutura do Projeto
+## 📁 Estrutura
 
 ```
 luna/
-├── __init__.py          # Package metadata
 ├── __main__.py          # Ponto de entrada
 ├── core/
 │   ├── orchestrator.py  # Orquestrador principal
-│   └── hotkeys.py       # Atalhos de teclado globais
+│   └── hotkeys.py       # Atalhos globais
 ├── brain/
-│   └── brain.py         # Integração LLM (Ollama)
+│   └── brain.py         # LLM (Ollama)
 ├── voice/
-│   ├── listener.py      # Speech-to-Text (InputStream contínuo)
-│   ├── speaker.py       # Text-to-Speech (com cache)
-│   ├── wake_word.py     # Detecção de wake word (RMS)
-│   ├── calibration.py   # Calibração de voz adaptativa
-│   └── sounds.py        # Efeitos sonoros programáticos
+│   ├── listener.py      # STT
+│   ├── speaker.py       # TTS
+│   ├── wake_word.py     # Wake word
+│   ├── calibration.py   # Calibração
+│   └── sounds.py        # Efeitos sonoros
 ├── actions/
-│   └── action_executor.py  # Controle do computador (20+ ações)
+│   └── action_executor.py  # Controle do PC (20+ ações)
 ├── memory/
-│   └── memory_manager.py   # Memória de longo prazo (ChromaDB)
+│   └── memory_manager.py   # Memória (ChromaDB)
 ├── vision/
 │   └── vision_module.py    # Reconhecimento facial
 ├── ui/
-│   └── display.py       # Interface visual animada
+│   └── display.py       # Interface visual premium
 └── utils/
-    ├── config.py        # Carregamento de config
-    └── logger.py        # Logger com Rich
+    ├── config.py        # Configuração
+    └── logger.py        # Logger
 ```
 
 ---
 
 ## ⚙️ Configuração
 
-Edite `config/config.yaml` com suas informações:
+`config/config.yaml`:
 
 ```yaml
 user:
@@ -130,13 +126,12 @@ user:
   nickname: "Seu Apelido"
 
 llm:
-  model: "gemma3:4b"       # Modelo rápido e leve
-  max_tokens: 256          # Respostas curtas para voz
+  model: "qwen2.5:1.5b"     # Ultra-rápido
+  max_tokens: 200
 
 voice:
   wake_word: "luna"
   tts_voice: "pt-BR-ThalitaMultilingualNeural"
-  tts_rate: "+15%"         # Velocidade da fala
 
 actions:
   enabled: true
@@ -148,33 +143,15 @@ actions:
 ## 🛠️ Requisitos
 
 - **Python** 3.10+
-- **Ollama** com um modelo instalado (`ollama pull gemma3:4b`)
-- **Linux**: `xdotool`, `xclip`, `amixer` (para controle total)
-- **Windows**: `pyautogui` (instalado automaticamente)
-- **pynput**: Para atalhos de teclado globais
-
----
-
-## 📝 Exemplos de Comandos
-
-| Comando | O que a Luna faz |
-|---------|-------------------|
-| "Luna, abre o Firefox" | Abre o Firefox |
-| "Pesquisa sobre IA no Google" | Abre pesquisa no navegador |
-| "Aumenta o volume" | Volume +10% |
-| "Tira um screenshot" | Captura a tela |
-| "Coloca um timer de 5 minutos" | Timer com notificação |
-| "Qual meu IP?" | Mostra IP local |
-| "Desliga o computador" | Shutdown do sistema |
-| "Ctrl+C" | Simula atalho de teclado |
-| "Lê o arquivo ~/notas.txt" | Lê conteúdo do arquivo |
-| "Roda 'ls -la' no terminal" | Executa comando |
+- **Ollama** com `qwen2.5:1.5b`
+- **Linux**: `xdotool`, `xclip`, `amixer`
+- **Windows**: `pyautogui`
 
 ---
 
 ## 📄 Licença
 
-MIT License — use como quiser.
+MIT License
 
 ---
 

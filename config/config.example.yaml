@@ -9,10 +9,10 @@ user:
   bio: "Descreva algo sobre você para a Luna te conhecer melhor."
 
 llm:
-  model: "gemma3:4b"
+  model: "qwen2.5:1.5b"
   vision_model: "moondream"
   temperature: 0.7
-  max_tokens: 256
+  max_tokens: 200
   ollama_host: "http://localhost:11434"
 
 voice:

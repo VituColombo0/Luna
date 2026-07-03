@@ -4,7 +4,7 @@ Utilitário para gerar config/config.yaml em UTF-8.
 Chamado pelo install.bat no Windows para evitar problemas
 de encoding do cmd.exe (que usa CP1252 por padrão).
 
-Uso: python _generate_config.py <name> <nickname> <bio> <model> <tts_voice>
+Uso: python _generate_config.py <name> <nickname> <bio>
 """
 
 import sys
@@ -12,20 +12,18 @@ from pathlib import Path
 
 
 def main():
-    if len(sys.argv) < 6:
-        print("Uso: python _generate_config.py <name> <nickname> <bio> <model> <tts_voice>")
+    if len(sys.argv) < 4:
+        print("Uso: python _generate_config.py <name> <nickname> <bio>")
         sys.exit(1)
 
     name = sys.argv[1]
     nickname = sys.argv[2]
     bio = sys.argv[3]
-    model = sys.argv[4]
-    tts_voice = sys.argv[5]
 
     config_content = f"""# ============================================
 # Luna — Configuração Pessoal
 # ============================================
-# Gerado automaticamente por install.bat
+# Gerado automaticamente pelo instalador
 
 # --- Seu Perfil ---
 user:
@@ -35,9 +33,10 @@ user:
 
 # --- Modelo de Linguagem ---
 llm:
-  model: "{model}"
+  model: "qwen2.5:1.5b"
   vision_model: "moondream"
   temperature: 0.7
+  max_tokens: 200
   ollama_host: "http://localhost:11434"
 
 # --- Voz ---
@@ -45,7 +44,8 @@ voice:
   stt_model: "base"
   stt_language: "pt"
   tts_engine: "edge-tts"
-  tts_voice: "{tts_voice}"
+  tts_voice: "pt-BR-ThalitaMultilingualNeural"
+  tts_rate: "+15%"
   wake_word: "luna"
 
 # --- Visão ---
@@ -66,6 +66,7 @@ memory:
 actions:
   enabled: true
   allowed_paths:
+    - "~"
     - "~/Documents"
     - "~/Downloads"
     - "~/Videos"

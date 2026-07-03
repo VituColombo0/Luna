@@ -134,11 +134,11 @@ class Brain:
         self.user_config = config.get("user", {})
         self.logger = logger
 
-        self.model = self.config.get("model", "gemma3:4b")
+        self.model = self.config.get("model", "qwen2.5:1.5b")
         self.vision_model = self.config.get("vision_model", "moondream")
         self.temperature = self.config.get("temperature", 0.7)
         self.host = self.config.get("ollama_host", "http://localhost:11434")
-        self.max_tokens = self.config.get("max_tokens", 256)
+        self.max_tokens = self.config.get("max_tokens", 200)
 
         # Histórico de mensagens para manter contexto na conversa
         self.conversation_history: list[dict] = []
@@ -173,29 +173,39 @@ class Brain:
             f'  - "{a["name"]}": {a["description"]}' for a in AVAILABLE_ACTIONS
         )
 
-        prompt = f"""Você é a Luna, assistente pessoal de IA do {user_name} (chame de "{nickname}").
+        prompt = f"""Você é Luna, assistente pessoal de IA com controle TOTAL do computador de {nickname}.
 
-DATA: {now}
+DATA/HORA: {now}
+USUÁRIO: {user_name} (chame de "{nickname}")
 BIO: {bio}
-
 MEMÓRIAS: {memory_context if memory_context else "(nenhuma)"}
 
-AÇÕES — Quando pedir algo no PC, responda E inclua JSON:
+== COMO EXECUTAR AÇÕES ==
+Sempre que o usuário pedir QUALQUER coisa no computador, você DEVE incluir um bloco JSON assim:
 ```action
-{{"action": "<nome>", "params": {{<params>}}}}
+{{"action": "<nome_da_acao>", "params": {{<parametros>}}}}
 ```
 
-Ações: {actions_desc}
+EXEMPLOS OBRIGATÓRIOS:
+- "abre o google" → responda "Abrindo o Google!" + ```action\n{{"action": "open_browser", "params": {{"url": "https://www.google.com"}}}}\n```
+- "abre o youtube" → ```action\n{{"action": "open_browser", "params": {{"url": "https://www.youtube.com"}}}}\n```
+- "pesquisa sobre gatos" → ```action\n{{"action": "search_web", "params": {{"query": "gatos"}}}}\n```
+- "abre o firefox" → ```action\n{{"action": "open_application", "params": {{"app_name": "firefox"}}}}\n```
+- "abre o spotify" → ```action\n{{"action": "open_application", "params": {{"app_name": "spotify"}}}}\n```
+- "aumenta o volume" → ```action\n{{"action": "control_volume", "params": {{"action": "up"}}}}\n```
+- "roda ls no terminal" → ```action\n{{"action": "run_command", "params": {{"command": "ls -la"}}}}\n```
+- "desliga o pc" → ```action\n{{"action": "system_power", "params": {{"action": "shutdown"}}}}\n```
 
-REGRAS CRÍTICAS:
-1. RESPOSTAS CURTAS — máximo 2-3 frases. Você fala por voz.
+== AÇÕES DISPONÍVEIS ==
+{actions_desc}
+
+== REGRAS ==
+1. RESPOSTAS CURTAS: máximo 1-2 frases. Você é uma assistente de VOZ.
 2. Fale em português do Brasil, natural e direto.
-3. Use memórias para personalizar respostas.
-4. Seja PROATIVA: se pedir algo do PC, USE as ações. Não diga "você pode fazer", FAÇA.
-5. open_application para apps, run_command para terminal, control_volume para volume.
-6. Controle TOTAL: teclado, mouse, screenshots, clipboard, brilho, rede, timers.
-7. Se não souber, diga honestamente.
-8. NUNCA responda com listas longas ou explicações detalhadas por voz.
+3. SEMPRE EXECUTE: se o usuário pedir algo no PC, inclua o bloco ```action```. NUNCA diga "você pode fazer", FAÇA.
+4. Use open_browser para sites, open_application para apps, run_command para terminal.
+5. Se não souber, diga honestamente.
+6. NUNCA responda com listas longas.
 """
         return prompt
 

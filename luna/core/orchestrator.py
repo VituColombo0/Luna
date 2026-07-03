@@ -170,21 +170,16 @@ class Orchestrator:
         """
         console.print(
             Panel(
-                f"[bold green]Todos os sistemas online![/]\n\n"
-                f"🎤 Modo: [bold cyan]Voz (estilo Alexa)[/]\n"
-                f'   Diga "[bold]{wake_word}[/]" seguido do seu comando\n'
-                f'   Exemplo: "{wake_word}, que horas são?"\n\n'
-                f"⌨️  Comandos de texto (terminal):\n"
-                f"  [dim]/sair[/]   — Desligar a Luna\n"
-                f"  [dim]/limpar[/] — Limpar histórico de conversa\n"
-                f"  [dim]/texto[/]  — Mudar para modo texto\n"
-                f"  [dim]/status[/] — Ver status dos módulos\n"
-                f"  [dim]/calibrar[/] — Recalibrar voz\n\n"
-                f"🔑 Atalhos Globais:\n"
-                f"  [dim]Ctrl+Shift+L[/] — Abrir/fechar terminal\n"
-                f"  [dim]Ctrl+Shift+Q[/] — Encerrar Luna",
-                title="✅ Luna Pronta",
-                border_style="green",
+                f"[bold bright_green]✨ Todos os sistemas online![/]\n\n"
+                f"  🎙️  Modo: [bold bright_cyan]Voz (estilo Alexa)[/]\n"
+                f'     Diga "[bold bright_magenta]{wake_word}[/]" seguido do seu comando\n\n'
+                f"  ⌨️  Comandos:\n"
+                f"     [dim]/sair[/]   — Desligar   [dim]/limpar[/] — Resetar\n"
+                f"     [dim]/texto[/]  — Modo texto  [dim]/status[/] — Módulos\n\n"
+                f"  🔑 [dim]Ctrl+Shift+L[/] Mostrar  •  [dim]Ctrl+Shift+Q[/] Encerrar",
+                title="[bold bright_white]🌙 Luna[/]",
+                border_style="bright_magenta",
+                padding=(1, 2),
             )
         )
 
@@ -200,7 +195,7 @@ class Orchestrator:
         while self.running:
             try:
                 user_input = console.input(
-                    f"\n[dim](ouvindo... digite comando ou /sair)[/] "
+                    f"\n[bold bright_magenta]❯[/] "
                 )
 
                 if not user_input or not user_input.strip():
@@ -225,11 +220,6 @@ class Orchestrator:
                     return
                 elif user_input.lower() == "/status":
                     self._show_status()
-                    continue
-                elif user_input.lower() == "/calibrar":
-                    self._run_calibration(
-                        self.config.get("voice", {}).get("wake_word", "luna")
-                    )
                     continue
                 else:
                     # Processar como comando de texto
@@ -317,18 +307,15 @@ class Orchestrator:
         """
         console.print(
             Panel(
-                f"[bold green]Todos os sistemas online![/]\n\n"
-                f"⌨️  Modo: [bold cyan]Texto[/]\n"
-                f"Comandos especiais:\n"
-                f"  [dim]/sair[/]   — Desligar a Luna\n"
-                f"  [dim]/limpar[/] — Limpar histórico de conversa\n"
-                f"  [dim]/voz[/]    — Mudar para modo voz\n"
-                f"  [dim]/status[/] — Ver status dos módulos\n\n"
-                f"🔑 Atalhos Globais:\n"
-                f"  [dim]Ctrl+Shift+L[/] — Abrir/fechar terminal\n"
-                f"  [dim]Ctrl+Shift+Q[/] — Encerrar Luna",
-                title="✅ Luna Pronta",
-                border_style="green",
+                f"[bold bright_green]✨ Todos os sistemas online![/]\n\n"
+                f"  ⌨️  Modo: [bold bright_cyan]Texto[/]\n\n"
+                f"  Comandos:\n"
+                f"     [dim]/sair[/]   — Desligar   [dim]/limpar[/] — Resetar\n"
+                f"     [dim]/voz[/]    — Modo voz   [dim]/status[/] — Módulos\n\n"
+                f"  🔑 [dim]Ctrl+Shift+L[/] Mostrar  •  [dim]Ctrl+Shift+Q[/] Encerrar",
+                title="[bold bright_white]🌙 Luna[/]",
+                border_style="bright_magenta",
+                padding=(1, 2),
             )
         )
 
@@ -338,7 +325,7 @@ class Orchestrator:
 
         while self.running:
             try:
-                user_input = console.input(f"\n[bold green]{user_name}:[/] ")
+                user_input = console.input(f"\n[bold bright_magenta]❯[/] ")
 
                 if not user_input or not user_input.strip():
                     continue
@@ -453,7 +440,7 @@ class Orchestrator:
         Args:
             text: Texto para falar e exibir.
         """
-        console.print(f"\n[bold magenta]Luna:[/] {text}")
+        console.print(f"\n  [bold bright_magenta]🌙 Luna:[/] {text}")
 
         # Pausar wake word durante fala (evitar auto-ativação)
         if hasattr(self, 'wake_word') and self.wake_word.is_available:
@@ -502,8 +489,12 @@ class Orchestrator:
         """Exibe o status de todos os módulos."""
         from rich.table import Table
 
-        table = Table(title="Status dos Módulos", border_style="bright_blue")
-        table.add_column("Módulo", style="bold")
+        table = Table(
+            title="[bold bright_white]🌙 Status dos Módulos[/]",
+            border_style="bright_magenta",
+            title_style="bold",
+        )
+        table.add_column("Módulo", style="bold bright_white")
         table.add_column("Status")
         table.add_column("Detalhe", style="dim")
 
