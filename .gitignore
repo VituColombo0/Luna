@@ -37,6 +37,10 @@ Thumbs.db
 *.wav
 !data/**
 
+# Ollama binários (muito grandes para git)
+ollama.tar.zst
+ollama.tgz
+
 # Configuração pessoal (gerada pelo instalador)
 config/config.yaml
 .env/
