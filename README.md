@@ -64,7 +64,7 @@ install.bat
 
 O instalador configura **tudo automaticamente**:
 - Python + dependências
-- Ollama + modelo qwen2.5:1.5b
+- Ollama + modelo modelo-laob
 - Perfil do usuário
 - Auto-start no boot
 
@@ -126,7 +126,7 @@ user:
   nickname: "Seu Apelido"
 
 llm:
-  model: "qwen2.5:1.5b"     # Ultra-rápido
+  model: "modelo-laob"     # Ultra-rápido
   max_tokens: 200
 
 voice:
@@ -143,7 +143,7 @@ actions:
 ## 🛠️ Requisitos
 
 - **Python** 3.10+
-- **Ollama** com `qwen2.5:1.5b`
+- **Ollama** com `modelo-laob`
 - **Linux**: `xdotool`, `xclip`, `amixer`
 - **Windows**: `pyautogui`
 

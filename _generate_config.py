@@ -33,7 +33,7 @@ user:
 
 # --- Modelo de Linguagem ---
 llm:
-  model: "qwen2.5:1.5b"
+  model: "modelo-laob"
   vision_model: "moondream"
   temperature: 0.7
   max_tokens: 200
