@@ -135,7 +135,7 @@ class Brain:
         self.user_config = config.get("user", {})
         self.logger = logger
 
-        self.model = self.config.get("model", "modelo-laob")
+        self.model = self.config.get("model", "qwen2.5:1.5b")
         self.vision_model = self.config.get("vision_model", "moondream")
         self.temperature = self.config.get("temperature", 0.7)
         self.host = self.config.get("ollama_host", "http://localhost:11434")

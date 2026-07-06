@@ -7,7 +7,7 @@
 #   2. Cria ambiente virtual Python
 #   3. Instala pacotes Python
 #   4. Instala e configura o Ollama
-#   5. Baixa o modelo de IA (modelo-laob)
+#   5. Baixa o modelo de IA (qwen2.5:1.5b)
 #   6. Gera configuração personalizada
 #   7. Configura auto-start no boot
 #
@@ -32,7 +32,7 @@ info() { echo -e "  ${CYAN}ℹ  $1${NC}"; }
 step() { echo -e "\n${BOLD}${MAGENTA}━━━ [$1/$TOTAL_STEPS] $2 ━━━${NC}"; }
 
 TOTAL_STEPS=7
-MODEL="modelo-laob"
+MODEL="qwen2.5:1.5b"
 
 # ─── Banner ────────────────────────────────────────────────
 echo ""

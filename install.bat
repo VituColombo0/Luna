@@ -7,7 +7,7 @@ REM   1. Instala Python se necessario (via winget)
 REM   2. Cria ambiente virtual
 REM   3. Instala dependencias
 REM   4. Instala Ollama
-REM   5. Baixa o modelo de IA (modelo-laob)
+REM   5. Baixa o modelo de IA (qwen2.5:1.5b)
 REM   6. Gera configuracao
 REM   7. Configura auto-start
 REM ═══════════════════════════════════════════════════════════
@@ -25,7 +25,7 @@ echo.
 
 set SCRIPT_DIR=%~dp0
 cd /d "%SCRIPT_DIR%"
-set MODEL=modelo-laob
+set MODEL=qwen2.5:1.5b
 
 REM ─── Verificar Python ─────────────────────────────────────
 echo [1/7] Verificando Python...
