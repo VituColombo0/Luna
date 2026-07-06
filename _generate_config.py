@@ -55,11 +55,12 @@ vision:
   face_recognition: true
   faces_dir: "data/faces"
 
-# --- Memória ---
+# --- Memória (Obsidian Vault) ---
 memory:
   enabled: true
-  db_path: "data/luna_memory"
-  max_context_items: 5
+  vault_path: "data/obsidian"
+  max_context_items: 8
+  recent_days: 3
   auto_save: true
 
 # --- Ações ---

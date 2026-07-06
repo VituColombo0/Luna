@@ -1,6 +1,7 @@
 # Dados persistentes (memória de longo prazo)
 data/luna_memory/
 data/memory/
+data/obsidian/
 
 # Fotos de faces (contém dados pessoais)
 data/faces/*

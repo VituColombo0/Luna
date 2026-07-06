@@ -2,7 +2,7 @@
 Orchestrator — O coração da Luna.
 
 Gerencia o loop principal e a comunicação entre todos os módulos:
-Brain (LLM), Voice (STT/TTS), Vision (câmera), Memory (ChromaDB),
+Brain (LLM), Voice (STT/TTS), Vision (câmera), Memory (Obsidian Vault),
 Actions (OS), Display (animações visuais), Hotkeys (atalhos globais).
 
 Modo Alexa:
@@ -27,7 +27,7 @@ from luna.voice.speaker import Speaker
 from luna.voice.wake_word import WakeWordDetector
 from luna.voice.sounds import SoundPlayer
 from luna.voice.calibration import VoiceCalibrator
-from luna.memory.memory_manager import MemoryManager
+from luna.memory.obsidian_memory import ObsidianMemory
 from luna.actions.action_executor import ActionExecutor
 from luna.vision.vision_module import VisionModule
 from luna.ui.display import Display, State
@@ -75,8 +75,8 @@ class Orchestrator:
         self.logger.info("Inicializando [bold]Sound Player[/]...")
         self.sounds = SoundPlayer()
 
-        self.logger.info("Inicializando [bold]Memory[/] (ChromaDB)...")
-        self.memory = MemoryManager(config, logger)
+        self.logger.info("Inicializando [bold]Memory[/] (Obsidian Vault)...")
+        self.memory = ObsidianMemory(config, logger)
 
         self.logger.info("Inicializando [bold]Actions[/] (OS Control)...")
         self.actions = ActionExecutor(config, logger)
@@ -620,10 +620,17 @@ class Orchestrator:
         table2.add_row("👁️  Vision", vision_status, vision_detail)
 
         mem_stats = self.memory.get_stats()
+        mem_detail = f"{mem_stats['count']} entradas"
+        if mem_stats.get("diary_days"):
+            mem_detail += f", {mem_stats['diary_days']} dias"
+        if mem_stats.get("people"):
+            mem_detail += f", {mem_stats['people']} pessoas"
+        if mem_stats.get("projects"):
+            mem_detail += f", {mem_stats['projects']} projetos"
         table2.add_row(
-            "📚 Memory",
+            "📚 Memory (Obsidian)",
             "[green]Ativo[/]" if mem_stats["enabled"] else "[yellow]Desativado[/]",
-            f"{mem_stats['count']} memórias salvas",
+            mem_detail,
         )
 
         # Listar membros conhecidos
