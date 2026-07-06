@@ -1,8 +1,10 @@
 # ============================================
-# Luna — Módulo de Memória (Opcional)
+# Luna — Módulo de Memória (Obsidian Vault)
 # ============================================
-# Memória de longo prazo com busca semântica.
-# Instalar com: pip install -r requirements-memory.txt
-
-chromadb>=0.5.0
-sentence-transformers>=3.0.0
+# A memória agora usa arquivos Markdown (.md) em um vault Obsidian.
+# NÃO precisa de dependências externas!
+#
+# O vault é criado automaticamente em data/obsidian/
+# e pode ser aberto com o app Obsidian para visualização.
+#
+# ChromaDB não é mais necessário.
