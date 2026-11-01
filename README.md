@@ -1,137 +1,146 @@
-# 🌙 Luna — Assistente Pessoal de IA Local
+# Luna: Assistente Pessoal Local de Voz e Automação de Sistema
 
-Luna é uma assistente pessoal de IA que roda **100% localmente** no seu computador.
-Ela ouve, entende, fala e **controla seu PC** — tudo sem depender da nuvem.
+Assistente de inteligência artificial de operação 100% local, combinando reconhecimento de voz, processamento de linguagem natural por LLM embarcado e controle direto de tarefas no sistema operacional.
 
----
-
-## ✨ Funcionalidades
-
-### 🎤 Interação por Voz
-- **Wake word**: Diga "Luna" para ativar (estilo Alexa)
-- **Speech-to-Text**: Transcrição local via Faster-Whisper
-- **Text-to-Speech**: Voz natural em PT-BR via Edge-TTS
-- **Calibração adaptativa**: Calibra o microfone na primeira execução
-
-### 🧠 Inteligência
-- **LLM local ultra-rápido**: Qwen 2.5 1.5B via Ollama (~1s de resposta)
-- **Respostas curtas**: Otimizado para respostas de 1-2 frases por voz
-- **Memória de longo prazo**: ChromaDB com busca semântica
-- **Contexto personalizado**: Luna conhece e lembra de você
-
-### 🖥️ Controle Total do Computador
-| Ação | Exemplo |
-|------|---------|
-| **Abrir sites** | "Luna, abre o Google" |
-| **Abrir apps** | "Abre o Spotify" |
-| **Pesquisar na web** | "Pesquisa sobre IA" |
-| **Executar comandos** | "Roda 'ls -la' no terminal" |
-| **Controlar volume** | "Aumenta o volume" |
-| **Screenshots** | "Tira um screenshot" |
-| **Clipboard** | "Copia isso para a clipboard" |
-| **Brilho** | "Diminui o brilho" |
-| **Timer** | "Timer de 5 minutos" |
-| **Rede** | "Qual meu IP?" |
-| **Energia** | "Desliga o computador" |
-| **Processos** | "Mata o processo do Chrome" |
-| **Teclado** | "Ctrl+C" |
-| **Arquivos** | "Lê o arquivo ~/notas.txt" |
-
-### 🔑 Atalhos Globais
-| Atalho | Ação |
-|--------|------|
-| `Ctrl+Shift+L` | Abrir/fechar terminal |
-| `Ctrl+Shift+Q` | Encerrar a Luna |
-
-### 👁️ Visão (Opcional)
-- Reconhecimento facial
-- Análise de imagens
+[![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![LLM: Qwen 2.5](https://img.shields.io/badge/LLM-Qwen%202.5%201.5B%20(Ollama)-purple.svg)](https://ollama.com/)
+[![STT: Faster-Whisper](https://img.shields.io/badge/STT-Faster--Whisper-teal.svg)](https://github.com/SYSTRAN/faster-whisper)
+[![TTS: Edge-TTS](https://img.shields.io/badge/TTS-Edge--TTS%20PT--BR-darkgreen.svg)](https://github.com/rany2/edge-tts)
+[![Memory: ChromaDB](https://img.shields.io/badge/Memory-ChromaDB%20Vector%20Store-orange.svg)](https://www.trychroma.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
-## 🚀 Instalação Rápida
+## Visão Geral
 
-### Linux
+O projeto **Luna** opera de maneira autônoma no computador do usuário, sem transmissão de áudio para servidores em nuvem. A assistente responde a comandos de voz disparados por palavra de ativação (*wake word*), interpreta a intenção do usuário por meio de um modelo de linguagem leve e aciona comandos de sistema ou sintetiza a resposta falada em tempo real.
+
+```
+                          [ Microfone Host ]
+                                  │
+                                  ▼
+                        [ Wake Word Detection ]
+                        Gatilho por voz: "Luna"
+                                  │
+                                  ▼
+                     [ STT: Faster-Whisper Local ]
+                      Conversão áudio -> texto
+                                  │
+                                  ▼
+                      [ Orquestrador Central ]
+                                  │
+         ┌────────────────────────┴────────────────────────┐
+         ▼                                                 ▼
+[ Memória Semântica ]                             [ Inferência Local ]
+   ChromaDB Vector                               Qwen 2.5 1.5B via Ollama
+         │                                                 │
+         └────────────────────────┬────────────────────────┘
+                                  │
+                                  ▼
+                     [ Interpretador de Ações ]
+                                  │
+         ┌────────────────────────┴────────────────────────┐
+         ▼                                                 ▼
+[ Execução de Sistema ]                           [ TTS: Edge-TTS ]
+Controle de janelas, volume,                    Resposta sintetizada em
+processos, scripts e shell                      áudio natural (PT-BR)
+```
+
+---
+
+## Módulos e Componentes
+
+### 1. Áudio e Reconhecimento de Fala
+- **Wake Word:** Monitoramento contínuo em baixa latência da palavra-chave "Luna".
+- **Transcrição (STT):** Processamento local acelerado via **Faster-Whisper** com calibração automática de limiar de silêncio e ganho de microfone na primeira execução.
+- **Síntese Vocal (TTS):** Geração de fala com prosódia natural em português brasileiro através da voz neural `pt-BR-ThalitaMultilingualNeural`.
+
+### 2. Processamento Cognitivo e Memória
+- **Modelo de Linguagem:** Utiliza o modelo **Qwen 2.5 1.5B** hospedado localmente via daemon do **Ollama**, priorizando baixa latência (tempo médio de resposta ~1 segundo) com respostas conversacionais concisas.
+- **Memória de Longo Prazo:** Indexação de preferências e histórico de sessões em banco vetorial **ChromaDB**, recuperando contexto semântico relevante antes da geração do prompt.
+
+### 3. Orquestração de Ações no Sistema
+A camada de ações (`luna/actions/action_executor.py`) mapeia intenções em chamadas nativas de sistema operacional:
+
+| Categoria | Ações Mapeadas | Exemplo de Comando Falado |
+| :--- | :--- | :--- |
+| **Navegação & Web** | Abertura de URLs, pesquisa no buscador padrão | *"Luna, pesquisa no Google sobre WebRTC"* |
+| **Aplicativos** | Lançamento e encerramento de programas instalados | *"Abre o Spotify"* / *"Mata o processo do Chrome"* |
+| **Controle de Sistema**| Volume, nível de brilho, captura de tela, energia | *"Aumenta o volume"* / *"Tira um screenshot"* |
+| **Automação** | Manipulação de clipboard, temporizadores, status de rede | *"Copia isso"* / *"Timer de 10 minutos"* / *"Qual meu IP?"* |
+| **Terminal & Shell** | Execução de comandos e scripts autorizados | *"Roda 'git status' no terminal"* |
+
+### 4. Atalhos Globais de Teclado
+- `Ctrl+Shift+L`: Alterna visibilidade do terminal interativo da assistente.
+- `Ctrl+Shift+Q`: Encerra graciosamente o processo e descarrega modelos da memória.
+
+---
+
+## Pré-requisitos
+
+- **Python 3.10** ou superior
+- **Ollama** instalado com o modelo `qwen2.5:1.5b` baixado (`ollama pull qwen2.5:1.5b`)
+- **Dependências de Sistema:**
+  - **Linux:** `xdotool`, `xclip`, `alsa-utils` (`amixer`)
+  - **Windows:** API Win32 e suporte ao `pyautogui`
+
+---
+
+## Instalação
+
+### Instalação Automatizada
+
+**No Linux:**
 ```bash
+git clone https://github.com/VituColombo0/Luna.git
+cd Luna
+
 chmod +x install.sh
 ./install.sh
 ```
 
-### Windows
-```
+**No Windows:**
+```cmd
+git clone https://github.com/VituColombo0/Luna.git
+cd Luna
 install.bat
 ```
 
-O instalador configura **tudo automaticamente**:
-- Python + dependências
-- Ollama + modelo qwen2.5:1.5b
-- Perfil do usuário
-- Auto-start no boot
+O assistente de instalação configura o ambiente virtual, instala os pacotes do `requirements.txt`, provisiona o modelo no Ollama e cria o arquivo de perfil inicial.
 
 ---
 
-## ▶️ Como Usar
+## Como Iniciar
 
 ```bash
-# Linux
-./start.sh
+# Inicialização padrão com interface de console
+./start.sh          # Linux
+start.bat           # Windows
 
-# Windows
-start.bat
-
-# Modo headless (sem terminal)
+# Inicialização em modo headless (segundo plano, sem terminal visível)
 ./start.sh --headless
 ```
 
 ---
 
-## 📁 Estrutura
+## Configuração (`config/config.yaml`)
 
-```
-luna/
-├── __main__.py          # Ponto de entrada
-├── core/
-│   ├── orchestrator.py  # Orquestrador principal
-│   └── hotkeys.py       # Atalhos globais
-├── brain/
-│   └── brain.py         # LLM (Ollama)
-├── voice/
-│   ├── listener.py      # STT
-│   ├── speaker.py       # TTS
-│   ├── wake_word.py     # Wake word
-│   ├── calibration.py   # Calibração
-│   └── sounds.py        # Efeitos sonoros
-├── actions/
-│   └── action_executor.py  # Controle do PC (20+ ações)
-├── memory/
-│   └── memory_manager.py   # Memória (ChromaDB)
-├── vision/
-│   └── vision_module.py    # Reconhecimento facial
-├── ui/
-│   └── display.py       # Interface visual premium
-└── utils/
-    ├── config.py        # Configuração
-    └── logger.py        # Logger
-```
-
----
-
-## ⚙️ Configuração
-
-`config/config.yaml`:
+Parâmetros de usuário e execução podem ser personalizados:
 
 ```yaml
 user:
-  name: "Seu Nome"
-  nickname: "Seu Apelido"
+  name: "Victor"
+  nickname: "Vitu"
 
 llm:
-  model: "qwen2.5:1.5b"     # Ultra-rápido
-  max_tokens: 200
+  model: "qwen2.5:1.5b"
+  temperature: 0.3
+  max_tokens: 150
 
 voice:
   wake_word: "luna"
   tts_voice: "pt-BR-ThalitaMultilingualNeural"
+  stt_model_size: "base"
 
 actions:
   enabled: true
@@ -140,19 +149,47 @@ actions:
 
 ---
 
-## 🛠️ Requisitos
+## Testes e Calibração de Hardware
 
-- **Python** 3.10+
-- **Ollama** com `qwen2.5:1.5b`
-- **Linux**: `xdotool`, `xclip`, `amixer`
-- **Windows**: `pyautogui`
+O repositório inclui utilitários isolados para testar periféricos antes de iniciar a assistente completa:
+
+```bash
+# Diagnóstico de captura e nível de sinal do microfone
+python test_mic.py
+
+# Validação da precisão da palavra de ativação
+python test_wake_word.py
+
+# Teste de tempo de resposta e acurácia do Faster-Whisper
+python test_whisper.py
+```
 
 ---
 
-## 📄 Licença
+## Estrutura do Projeto
 
-MIT License
+```text
+Luna/
+├── luna/
+│   ├── __main__.py          # Ponto de entrada da aplicação
+│   ├── core/                # Orquestrador central e atalhos globais
+│   ├── brain/               # Cliente de integração com Ollama
+│   ├── voice/               # Módulos de captura, STT, TTS e wake word
+│   ├── actions/             # Handlers de automação e comandos do SO
+│   ├── memory/              # Gerenciador de vetores e contexto ChromaDB
+│   ├── vision/              # Módulo experimental de visão computacional
+│   ├── ui/                  # Interface visual e feedback de status
+│   └── utils/               # Configuração e logging
+├── config/                  # Definições em YAML
+├── test_mic.py              # Script de teste de microfone
+├── test_wake_word.py        # Script de validação da wake word
+├── test_whisper.py          # Script de validação de transcrição
+├── install.sh / install.bat # Scripts de instalação
+└── README.md                # Documentação técnica
+```
 
 ---
 
-> 🌙 *"Luna, sempre ao seu lado."*
+## Licença
+
+Distribuído sob a licença MIT. Veja [LICENSE](LICENSE) para mais detalhes.
